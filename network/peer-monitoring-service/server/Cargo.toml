@@ -1,0 +1,31 @@
+[package]
+name = "arx-peer-monitoring-service-server"
+description = "The peer monitoring service (server-side)"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+arx-bounded-executor = { workspace = true }
+arx-channel = { workspace = true }
+arx-config = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-netcore = { workspace = true }
+arx-network = { workspace = true }
+arx-peer-monitoring-service-types = { workspace = true }
+arx-types = { workspace = true }
+bcs = { workspace = true }
+bytes = { workspace = true }
+futures = { workspace = true }
+once_cell = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }

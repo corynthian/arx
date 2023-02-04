@@ -1,0 +1,77 @@
+[package]
+name = "arx-node"
+description = "Arx node"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-api = { workspace = true }
+arx-backup-service = { workspace = true }
+arx-build-info = { workspace = true }
+arx-cached-packages = { workspace = true }
+arx-channel = { workspace = true }
+arx-config = { workspace = true }
+arx-consensus = { workspace = true }
+arx-consensus-notifications = { workspace = true }
+arx-crash-handler = { workspace = true }
+arx-crypto = { workspace = true }
+arx-data-client = { workspace = true }
+arx-data-streaming-service = { workspace = true }
+arx-db = { workspace = true }
+arx-event-notifications = { workspace = true }
+arx-executor = { workspace = true }
+arx-executor-types = { workspace = true }
+arx-framework = { workspace = true }
+arx-genesis = { workspace = true }
+arx-indexer = { workspace = true, optional = true }
+arx-infallible = { workspace = true }
+arx-inspection-service = { workspace = true }
+arx-logger = { workspace = true }
+arx-mempool = { workspace = true }
+arx-mempool-notifications = { workspace = true }
+arx-network = { workspace = true }
+arx-network-builder = { workspace = true }
+arx-tokio-runtime = { workspace = true }
+arx-secure-storage = { workspace = true }
+arx-state-sync-driver = { workspace = true }
+arx-state-view = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-storage-service-client = { workspace = true }
+arx-storage-service-server = { workspace = true }
+arx-storage-service-types = { workspace = true }
+arx-telemetry = { workspace = true }
+arx-temppath = { workspace = true }
+arx-time-service = { workspace = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true }
+bcs = { workspace = true }
+clap = { workspace = true }
+fail = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+maplit = { workspace = true }
+rand = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+jemallocator = { workspace = true }
+
+[features]
+default = []
+assert-private-keys-not-cloneable = ["arx-crypto/assert-private-keys-not-cloneable"]
+failpoints = ["fail/failpoints", "arx-consensus/failpoints", "arx-executor/failpoints", "arx-mempool/failpoints", "arx-api/failpoints"]
+indexer = ["arx-indexer"]
+check-vm-features = []
+consensus-only-perf-test = ["arx-executor/consensus-only-perf-test", "arx-mempool/consensus-only-perf-test", "arx-db/consensus-only-perf-test"]

@@ -1,0 +1,47 @@
+[package]
+name = "e2e-move-tests"
+description = "Move e2e tests"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+ol = { workspace = true }
+arx-block-executor = { workspace = true }
+arx-cached-packages = { workspace = true }
+arx-crypto = { workspace = true }
+arx-framework = { workspace = true }
+arx-gas = { workspace = true, features = ["testing"] }
+arx-keygen = { workspace = true }
+arx-language-e2e-tests = { workspace = true }
+arx-logger = { workspace = true }
+arx-package-builder = { workspace = true }
+arx-state-view = { workspace = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true }
+arx-vm-genesis = { workspace = true }
+arx-writeset-generator = { workspace = true }
+bcs = { workspace = true }
+hex = { workspace = true }
+itertools = { workspace = true }
+move-binary-format = { workspace = true }
+move-core-types = { workspace = true }
+move-package = { workspace = true }
+move-symbarx-pool = { workspace = true }
+project-root = { workspace = true }
+proptest = { workspace = true }
+rand = { workspace = true }
+rstest = { workspace = true }
+serde = { workspace = true }
+tempfile = { workspace = true }
+
+[lib]
+doctest = false

@@ -1,0 +1,35 @@
+[package]
+name = "arx-inspection-service"
+description = "The Node Inspection Service"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-build-info = { workspace = true }
+arx-config = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-tokio-runtime = { workspace = true }
+arx-telemetry = { workspace = true }
+futures = { workspace = true }
+hyper = { workspace = true }
+once_cell = { workspace = true }
+prometheus = { workspace = true }
+reqwest = { workspace = true }
+serde_json = { workspace = true }
+sysinfo = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+assert_approx_eq = { workspace = true }
+rusty-fork = { workspace = true }

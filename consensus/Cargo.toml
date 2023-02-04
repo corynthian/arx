@@ -1,0 +1,79 @@
+[package]
+name = "arx-consensus"
+description = "Arx consensus"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-bitvec = { workspace = true }
+arx-channel = { workspace = true }
+arx-config = { workspace = true }
+arx-consensus-notifications = { workspace = true }
+arx-consensus-types = { workspace = true }
+arx-crypto = { workspace = true }
+arx-event-notifications = { workspace = true }
+arx-executor = { workspace = true }
+arx-executor-types = { workspace = true }
+arx-fallible = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-mempool = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-network = { workspace = true }
+arx-safety-rules = { workspace = true }
+arx-schemadb = { workspace = true }
+arx-secure-storage = { workspace = true }
+arx-short-hex-str = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-temppath = { workspace = true }
+arx-tokio-runtime = { workspace = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true }
+arc-swap = { workspace = true }
+async-trait = { workspace = true }
+bcs = { workspace = true }
+byteorder = { workspace = true }
+bytes = { workspace = true }
+fail = { workspace = true }
+futures = { workspace = true }
+futures-channel = { workspace = true }
+itertools = { workspace = true }
+maplit = { workspace = true }
+mirai-annotations = { workspace = true }
+num-derive = { workspace = true }
+num-traits = { workspace = true }
+once_cell = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+arx-config = { workspace = true, features = ["fuzzing"] }
+arx-consensus-types = { workspace = true, features = ["fuzzing"] }
+arx-executor-test-helpers = { workspace = true }
+arx-keygen = { workspace = true }
+arx-mempool = { workspace = true, features = ["fuzzing"] }
+arx-network = { workspace = true, features = ["fuzzing"] }
+arx-safety-rules = { workspace = true, features = ["testing"] }
+arx-vm-validator = { workspace = true }
+claims = { workspace = true }
+move-core-types = { workspace = true }
+proptest = { workspace = true }
+tempfile = { workspace = true }
+
+[features]
+default = []
+fuzzing = ["arx-consensus-types/fuzzing", "arx-config/fuzzing", "arx-crypto/fuzzing", "arx-mempool/fuzzing", "arx-types/fuzzing", "arx-safety-rules/testing"]
+failpoints = ["fail/failpoints"]

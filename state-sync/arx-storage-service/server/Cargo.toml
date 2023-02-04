@@ -1,0 +1,46 @@
+[package]
+name = "arx-storage-service-server"
+description = "The Arx storage service (server-side)"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+arx-bounded-executor = { workspace = true }
+arx-channel = { workspace = true }
+arx-config = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-network = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-storage-service-types = { workspace = true }
+arx-time-service = { workspace = true }
+arx-types = { workspace = true }
+bcs = { workspace = true }
+bytes = { workspace = true }
+futures = { workspace = true }
+lru = { workspace = true }
+once_cell = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+arx-bitvec = { workspace = true }
+arx-crypto = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-time-service = { workspace = true, features = ["async", "testing"] }
+arx-types = { workspace = true }
+claims = { workspace = true }
+maplit = { workspace = true }
+mockall = { workspace = true }
+rand = { workspace = true }

@@ -1,0 +1,65 @@
+[package]
+name = "arx-api"
+description = "Arx REST API"
+version = "0.2.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-api-types = { workspace = true }
+arx-build-info = { workspace = true }
+arx-config = { workspace = true }
+arx-crypto = { workspace = true }
+arx-gas = { workspace = true }
+arx-logger = { workspace = true }
+arx-mempool = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-tokio-runtime = { workspace = true }
+arx-state-view = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true }
+async-trait = { workspace = true }
+bcs = { workspace = true }
+bytes = { workspace = true }
+fail = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+hyper = { workspace = true }
+itertools = { workspace = true }
+mime = { workspace = true }
+move-core-types = { workspace = true }
+once_cell = { workspace = true }
+paste = { workspace = true }
+poem = { workspace = true }
+poem-openapi = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+arx-api-test-context = { workspace = true }
+arx-cached-packages = { workspace = true }
+arx-framework = { workspace = true }
+arx-gas = { workspace = true, features = ["testing"] }
+arx-proptest-helpers = { workspace = true }
+arx-sdk = { workspace = true }
+move-package = { workspace = true }
+percent-encoding = { workspace = true }
+proptest = { workspace = true }
+rand = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+warp = { workspace = true }
+
+[features]
+failpoints = ["fail/failpoints"]

@@ -1,0 +1,39 @@
+[package]
+name = "arx-vm-genesis"
+description = "Arx vm genesis"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-cached-packages =  { workspace = true }
+arx-crypto = { workspace = true }
+arx-framework =  { workspace = true }
+arx-gas = { workspace = true }
+arx-state-view = { workspace = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true }
+bcs = { workspace = true }
+move-core-types = { workspace = true }
+move-vm-types = { workspace = true }
+once_cell = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+arx-proptest-helpers = { workspace = true }
+move-core-types = { workspace = true }
+proptest = { workspace = true }
+proptest-derive = { workspace = true }
+
+[features]
+default = []
+fuzzing = ["arx-types/fuzzing", "move-core-types/fuzzing", "move-vm-types/fuzzing"]

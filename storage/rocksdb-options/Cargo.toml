@@ -1,0 +1,17 @@
+[package]
+name = "arx-rocksdb-options"
+description = "Arx RocksDb Options"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+arx-config = { workspace = true }
+rocksdb = { workspace = true }

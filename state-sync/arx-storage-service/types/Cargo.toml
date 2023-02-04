@@ -1,0 +1,27 @@
+[package]
+name = "arx-storage-service-types"
+description = "Common types offered by the Arx storage service"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+arx-compression = { workspace = true }
+arx-config = { workspace = true }
+arx-crypto = { workspace = true }
+arx-types = { workspace = true }
+bcs = { workspace = true }
+num-traits = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+claims = { workspace = true }
+proptest = { workspace = true }

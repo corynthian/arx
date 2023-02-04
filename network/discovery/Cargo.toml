@@ -1,0 +1,40 @@
+[package]
+name = "arx-network-discovery"
+description = "Arx Network Peer Discovery"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-channel = { workspace = true }
+arx-config = { workspace = true }
+arx-crypto = { workspace = true }
+arx-event-notifications = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-network = { workspace = true }
+arx-rest-client = { workspace = true }
+arx-secure-storage = { workspace = true }
+arx-short-hex-str = { workspace = true }
+arx-time-service = { workspace = true }
+arx-types = { workspace = true }
+bcs = { workspace = true }
+futures = { workspace = true }
+once_cell = { workspace = true }
+serde_yaml = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+arx-config = { workspace = true, features = ["testing"] }
+arx-netcore = { workspace = true, features = ["fuzzing"] }
+arx-temppath = { workspace = true }
+rand = { workspace = true }

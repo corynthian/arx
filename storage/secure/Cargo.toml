@@ -1,0 +1,42 @@
+[package]
+name = "arx-secure-storage"
+description = "Arx's Persistent, Secure Storage"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-crypto = { workspace = true }
+arx-github-client = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-schemadb = { workspace = true }
+arx-temppath = { workspace = true }
+arx-time-service = { workspace = true }
+arx-vault-client = { workspace = true }
+base64 = { workspace = true }
+bcs = { workspace = true }
+chrono = { workspace = true }
+enum_dispatch = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+arx-crypto = { workspace = true, features = ["fuzzing"] }
+arx-crypto-derive = { workspace = true }
+arx-schemadb = { workspace = true, features = ["fuzzing"] }
+rand = { workspace = true }
+
+[features]
+fuzzing = ["arx-crypto/fuzzing"]
+testing = []

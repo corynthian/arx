@@ -1,0 +1,88 @@
+[package]
+name = "arx"
+description = "Arx tool for management of nodes and interacting with the blockchain"
+version = "1.0.5"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-backup-cli = { workspace = true }
+arx-bitvec = { workspace = true }
+arx-build-info = { workspace = true }
+arx-cached-packages = { workspace = true }
+arx-config = { workspace = true }
+arx-crypto = { workspace = true }
+arx-faucet = { workspace = true }
+arx-framework = { workspace = true }
+arx-gas = { workspace = true }
+arx-genesis = { workspace = true }
+arx-github-client = { workspace = true }
+arx-protocol-constants = { workspace = true }
+arx-keygen = { workspace = true }
+arx-logger = { workspace = true }
+arx-node = { workspace = true }
+arx-rest-client = { workspace = true }
+arx-sdk = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-telemetry = { workspace = true }
+arx-temppath = { workspace = true }
+arx-transactional-test-harness = { workspace = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true, features = ["testing"] }
+arx-vm-genesis = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+bcs = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+clap_complete = { workspace = true }
+dirs = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+itertools = { workspace = true }
+move-binary-format = { workspace = true }
+move-cli = { workspace = true }
+move-command-line-common = { workspace = true }
+move-core-types = { workspace = true }
+move-package = { workspace = true }
+move-prover = { workspace = true }
+move-prover-boogie-backend = { workspace = true }
+move-symbol-pool = { workspace = true }
+move-unit-test = { workspace = true }
+move-vm-runtime = { workspace = true, features = [ "testing" ] }
+rand = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+self_update = { version = "0.34.0", features = ["archive-zip", "compression-zip-deflate"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+shadow-rs = { workspace = true }
+tempfile = { workspace = true }
+termcolor = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+toml = { workspace = true }
+walkdir = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+jemallocator = { workspace = true }
+
+[features]
+default = []
+fuzzing = []
+no-upload-proposal = []
+indexer = ["arx-node/indexer"]
+cli-framework-test-move = []
+
+[build-dependencies]
+shadow-rs = { workspace = true }

@@ -1,0 +1,48 @@
+[package]
+name = "arx-api-test-context"
+description = "Arx API test context"
+version = "0.2.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-api = { workspace = true }
+arx-api-types = { workspace = true }
+arx-cached-packages = { workspace = true }
+arx-config = { workspace = true }
+arx-crypto = { workspace = true }
+arx-db = { workspace = true, features = ["fuzzing"] }
+arx-executor = { workspace = true }
+arx-executor-types = { workspace = true }
+arx-genesis = { workspace = true }
+arx-mempool = { workspace = true, features = ["fuzzing"] }
+arx-mempool-notifications = { workspace = true }
+arx-sdk = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-temppath = { workspace = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true }
+arx-vm-validator = { workspace = true }
+bytes = { workspace = true }
+goldenfile = { workspace = true }
+hyper = { workspace = true }
+poem = { workspace = true }
+poem-openapi = { workspace = true }
+proptest = { workspace = true }
+rand = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+warp = { workspace = true }
+warp-reverse-proxy = { workspace = true }

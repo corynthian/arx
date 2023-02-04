@@ -1,0 +1,52 @@
+[package]
+name = "arx-telemetry"
+description = "Arx utilities to collect observability data from a node and send it to a remote destination"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-api = { workspace = true }
+arx-config = { workspace = true }
+arx-consensus = { workspace = true }
+arx-crypto = { workspace = true }
+arx-db = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-mempool = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-network = { workspace = true }
+arx-node-resource-metrics = { workspace = true }
+arx-tokio-runtime = { workspace = true }
+arx-state-sync-driver = { workspace = true }
+arx-telemetry-service = { workspace = true }
+arx-types = { workspace = true }
+flate2 = { workspace = true }
+futures = { workspace = true }
+once_cell = { workspace = true }
+prometheus = { workspace = true }
+rand = { workspace = true }
+rand_core = { workspace = true }
+reqwest = { workspace = true }
+reqwest-middleware = { workspace = true }
+reqwest-retry = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sysinfo = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-retry = { workspace = true }
+tokio-stream = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+httpmock = { workspace = true }

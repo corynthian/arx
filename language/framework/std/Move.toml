@@ -1,0 +1,7 @@
+[package]
+name = "Std"
+version = "1.0.0"
+
+[addresses]
+std = "0x1"
+# Extensions = "0x1" # For Prover to instantiate `{{Ext}}` in prelude.

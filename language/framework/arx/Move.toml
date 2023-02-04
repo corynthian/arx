@@ -1,0 +1,12 @@
+[package]
+name = "Arx"
+version = "1.0.0"
+
+[addresses]
+vm_reserved = "0x0"
+std = "0x1"
+arx = "0x1"
+core_resources = "0xA550C18"
+
+[dependencies]
+Std = { local = "../std" }

@@ -1,0 +1,64 @@
+[package]
+name = "arx-mempool"
+description = "Arx mempool for consuming incoming transactions"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-bounded-executor = { workspace = true }
+arx-channel = { workspace = true }
+arx-config = { workspace = true }
+arx-consensus-types = { workspace = true }
+arx-crypto = { workspace = true }
+arx-event-notifications = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-mempool-notifications = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-netcore = { workspace = true }
+arx-network = { workspace = true }
+arx-proptest-helpers = { workspace = true, optional = true }
+arx-tokio-runtime = { workspace = true }
+arx-short-hex-str = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-types = { workspace = true }
+arx-vm-validator = { workspace = true }
+async-trait = { workspace = true }
+bcs = { workspace = true }
+fail = { workspace = true }
+futures = { workspace = true }
+itertools = { workspace = true }
+maplit = { workspace = true }
+once_cell = { workspace = true }
+proptest = { workspace = true, optional = true }
+rand = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+
+[dev-dependencies]
+arx-compression = { workspace = true }
+arx-config = { workspace = true }
+arx-id-generator = { workspace = true }
+arx-network = { workspace = true, features = ["fuzzing"] }
+arx-storage-interface = { workspace = true, features = ["fuzzing"] }
+enum_dispatch = { workspace = true }
+proptest = { workspace = true }
+
+[features]
+default = []
+failpoints = ["fail/failpoints", "arx-vm-validator/failpoints"]
+fuzzing = ["proptest", "arx-types/fuzzing", "arx-storage-interface/fuzzing", "arx-config/fuzzing"]
+consensus-only-perf-test = []

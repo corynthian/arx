@@ -1,0 +1,76 @@
+[package]
+name = "arx-db"
+description = "Arx database"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-accumulator = { workspace = true }
+arx-config = { workspace = true }
+arx-crypto = { workspace = true }
+arx-db-indexer = { workspace = true }
+arx-executor-types = { workspace = true }
+arx-infallible = { workspace = true }
+arx-jellyfish-merkle = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-proptest-helpers = { workspace = true, optional = true }
+arx-rocksdb-options = { workspace = true }
+arx-schemadb = { workspace = true }
+arx-scratchpad = { workspace = true }
+arx-state-view = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-temppath = { workspace = true, optional = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true }
+arc-swap = { workspace = true }
+arr_macro = { workspace = true }
+bcs = { workspace = true }
+byteorder = { workspace = true }
+clap = { workspace = true, optional = true }
+dashmap = { workspace = true }
+itertools = { workspace = true }
+lru = { workspace = true }
+move-core-types = { workspace = true }
+move-resource-viewer = { workspace = true }
+num-derive = { workspace = true }
+once_cell = { workspace = true }
+owo-colors = { workspace = true, optional = true }
+proptest = { workspace = true, optional = true }
+proptest-derive = { workspace = true, optional = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+static_assertions = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+arx-executor-types = { workspace = true }
+arx-jellyfish-merkle = { workspace = true, features = ["fuzzing"] }
+arx-proptest-helpers = { workspace = true }
+arx-schemadb = { workspace = true, features = ["fuzzing"] }
+arx-scratchpad = { workspace = true, features = ["fuzzing"] }
+arx-temppath = { workspace = true }
+arx-types = { workspace = true }
+proptest = { workspace = true }
+proptest-derive = { workspace = true }
+rand = { workspace = true }
+
+[features]
+default = []
+fuzzing = ["proptest", "proptest-derive", "arx-proptest-helpers", "arx-temppath", "arx-crypto/fuzzing", "arx-jellyfish-merkle/fuzzing", "arx-types/fuzzing", "arx-executor-types/fuzzing", "arx-schemadb/fuzzing", "arx-scratchpad/fuzzing"]
+consensus-only-perf-test = []
+db-debugger = ["arx-temppath", "clap", "owo-colors"]
+
+[[bin]]
+name = "db-debugger"
+path = "src/db_debugger/main.rs"
+required-features = ["db-debugger"]

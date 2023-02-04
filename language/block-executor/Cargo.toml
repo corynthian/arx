@@ -1,0 +1,51 @@
+[package]
+name = "arx-block-executor"
+description = "Arx block transaction executor library, parallel execution via Block-STM"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-aggregator = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-move-hashmap = { workspace = true }
+arx-state-view = { workspace = true }
+arx-types = { workspace = true }
+arc-swap = { workspace = true }
+bcs = { workspace = true }
+criterion = { workspace = true, optional = true }
+crossbeam = { workspace = true }
+crossbeam-queue = { workspace = true }
+dashmap = { workspace = true }
+move-binary-format = { workspace = true }
+num_cpus = { workspace = true }
+once_cell = { workspace = true }
+parking_lot = { workspace = true }
+proptest = { workspace = true, optional = true }
+proptest-derive = { workspace = true, optional = true }
+rayon = { workspace = true }
+
+[dev-dependencies]
+claims = { workspace = true }
+criterion = { workspace = true }
+proptest = { workspace = true }
+proptest-derive = { workspace = true }
+rand = { workspace = true }
+
+[features]
+fuzzing = ["criterion", "proptest", "proptest-derive"]
+
+[[bench]]
+name = "scheduler_benches"
+harness = false
+required-features = ["fuzzing"]

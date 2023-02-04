@@ -1,0 +1,44 @@
+[package]
+name = "arx-data-client"
+description = "The Arx data client"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+arx-config = { workspace = true }
+arx-crypto = { workspace = true }
+arx-id-generator = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-netcore = { workspace = true }
+arx-network = { workspace = true }
+arx-storage-service-client = { workspace = true }
+arx-storage-service-types = { workspace = true }
+arx-time-service = { workspace = true }
+arx-types = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+itertools = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+arx-channel = { workspace = true }
+arx-network = { workspace = true, features = ["fuzzing"] }
+arx-storage-service-server = { workspace = true }
+arx-time-service = { workspace = true, features = ["async", "testing"] }
+bcs = { workspace = true }
+claims = { workspace = true }
+maplit = { workspace = true }
+tokio = { workspace = true }

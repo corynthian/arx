@@ -1,0 +1,32 @@
+[package]
+name = "arx-executor-test-helpers"
+description = "Arx executor test helpers"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-cached-packages = { workspace = true }
+arx-config = { workspace = true }
+arx-consensus-types = { workspace = true }
+arx-crypto = { workspace = true }
+arx-db = { workspace = true, features = ["fuzzing"] }
+arx-executor = { workspace = true }
+arx-executor-types = { workspace = true }
+arx-genesis = { workspace = true }
+arx-sdk = { workspace = true }
+arx-state-view = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-temppath = { workspace = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true }
+arx-vm-genesis = { workspace = true }
+rand = { workspace = true }

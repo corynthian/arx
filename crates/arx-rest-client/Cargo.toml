@@ -1,0 +1,41 @@
+[package]
+name = "arx-rest-client"
+description = "Arx REST client"
+version = "0.0.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[features]
+default = ["dpn"]
+dpn = []
+
+[dependencies]
+anyhow = { workspace = true }
+arx-api-types = { workspace = true }
+arx-crypto = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-types = { workspace = true }
+bcs = { workspace = true }
+bytes = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+move-binary-format = { workspace = true }
+move-core-types = { workspace = true }
+poem-openapi = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+clap = { workspace = true }

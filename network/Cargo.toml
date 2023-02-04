@@ -1,0 +1,71 @@
+[package]
+name = "arx-network"
+description = "Arx networking stack"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-bitvec = { workspace = true }
+arx-channel = { workspace = true }
+arx-compression = { workspace = true }
+arx-config = { workspace = true }
+arx-crypto = { workspace = true }
+arx-crypto-derive = { workspace = true }
+arx-id-generator = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-memsocket = { workspace = true, optional = true }
+arx-metrics-core = { workspace = true }
+arx-netcore = { workspace = true }
+arx-num-variants = { workspace = true }
+arx-proptest-helpers = { workspace = true, optional = true }
+arx-rate-limiter = { workspace = true }
+arx-short-hex-str = { workspace = true }
+arx-time-service = { workspace = true, features = ["async"] }
+arx-types = { workspace = true }
+async-trait = { workspace = true }
+bcs = { workspace = true }
+bytes = { workspace = true }
+futures = { workspace = true }
+futures-util = { workspace = true }
+hex = { workspace = true }
+itertools = { workspace = true }
+maplit = { workspace = true }
+once_cell = { workspace = true }
+pin-project = { workspace = true }
+proptest ={ workspace = true, optional = true }
+proptest-derive = { workspace = true, optional = true }
+rand = { workspace = true, features = ["small_rng"] }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-retry = { workspace = true }
+tokio-util = { workspace = true }
+
+[dev-dependencies]
+arx-bitvec = { workspace = true, features = ["fuzzing"] }
+arx-config = { workspace = true, features = ["testing"] }
+arx-memsocket = { workspace = true }
+arx-netcore = { workspace = true, features = ["testing"] }
+arx-proptest-helpers = { workspace = true }
+arx-time-service = { workspace = true, features = ["testing"] }
+arx-types = { workspace = true, features = ["fuzzing"] }
+proptest = { workspace = true }
+proptest-derive = { workspace = true }
+rand_core = { workspace = true }
+
+[features]
+default = []
+fuzzing = ["arx-bitvec/fuzzing", "arx-config/fuzzing", "arx-crypto/fuzzing", "arx-types/fuzzing", "arx-proptest-helpers", "arx-time-service/testing", "arx-types/fuzzing", "arx-memsocket/testing", "arx-netcore/fuzzing", "proptest", "proptest-derive"]
+testing = ["arx-config/testing", "arx-time-service/testing", "arx-memsocket/testing", "arx-netcore/testing"]

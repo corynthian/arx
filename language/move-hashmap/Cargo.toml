@@ -1,0 +1,27 @@
+[package]
+name = "arx-move-hashmap"
+description = "Move hash map"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-aggregator = { workspace = true }
+arx-infallible = { workspace = true }
+arx-types = { workspace = true }
+bcs = { workspace = true }
+crossbeam = { workspace = true }
+dashmap = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+proptest-derive = { workspace = true }
+rayon = { workspace = true }

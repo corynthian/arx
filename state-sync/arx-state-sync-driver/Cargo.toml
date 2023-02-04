@@ -1,0 +1,64 @@
+[package]
+name = "arx-state-sync-driver"
+description = "The driver for state sync"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-config = { workspace = true }
+arx-consensus-notifications = { workspace = true }
+arx-crypto = { workspace = true }
+arx-data-client = { workspace = true }
+arx-data-streaming-service = { workspace = true }
+arx-event-notifications = { workspace = true }
+arx-executor-types = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-mempool-notifications = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-tokio-runtime = { workspace = true }
+arx-schemadb = { workspace = true }
+arx-scratchpad = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-time-service = { workspace = true }
+arx-types = { workspace = true }
+async-trait = { workspace = true }
+bcs = { workspace = true }
+futures = { workspace = true }
+once_cell = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+arx-channel = { workspace = true }
+arx-crypto = { workspace = true }
+arx-db = { workspace = true }
+arx-executor = { workspace = true }
+arx-executor-test-helpers = { workspace = true }
+arx-genesis = { workspace = true, features = ["testing"] }
+arx-network = { workspace = true }
+arx-storage-service-client = { workspace = true }
+arx-storage-service-types = { workspace = true }
+arx-temppath = { workspace = true }
+arx-time-service = { workspace = true, features = ["async", "testing"] }
+arx-vm = { workspace = true }
+arx-vm-genesis = { workspace = true }
+async-trait = { workspace = true }
+bcs = { workspace = true }
+claims = { workspace = true }
+mockall = { workspace = true }
+move-core-types = { workspace = true }
+ntest = { workspace = true }
+rand = { workspace = true }

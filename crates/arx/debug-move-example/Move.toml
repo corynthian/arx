@@ -1,0 +1,9 @@
+[package]
+name = "DebugDemo"
+version = "0.0.0"
+
+[addresses]
+debug_demo = "0x1"
+
+[dependencies]
+Arx = { local = "../../../language/framework/arx" }

@@ -1,0 +1,54 @@
+[package]
+name = "arx-safety-rules"
+description = "Arx safety rules"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+arx-config = { workspace = true }
+arx-consensus-types = { workspace = true }
+arx-crypto = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-proptest-helpers = { workspace = true, optional = true }
+arx-protocol-constants = { workspace = true }
+arx-secure-net = { workspace = true }
+arx-secure-storage = { workspace = true }
+arx-temppath = { workspace = true }
+arx-types = { workspace = true }
+arx-vault-client = { workspace = true }
+once_cell = { workspace = true }
+proptest = { workspace = true, optional = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+arx-config = { workspace = true, features = ["fuzzing"] }
+arx-consensus-types = { workspace = true, features = ["fuzzing"] }
+arx-proptest-helpers = { workspace = true }
+arx-secure-storage = { workspace = true, features = ["testing"] }
+criterion = { workspace = true }
+proptest = { workspace = true }
+rusty-fork = { workspace = true }
+tempfile = { workspace = true }
+
+[[bench]]
+name = "safety_rules"
+harness = false
+required-features = ["testing"]
+
+[features]
+default = []
+fuzzing = ["arx-consensus-types/fuzzing", "arx-config/fuzzing", "proptest", "arx-proptest-helpers"]
+testing = ["arx-secure-storage/testing"]

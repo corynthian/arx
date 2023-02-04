@@ -1,0 +1,18 @@
+[package]
+name = "arx-push-metrics"
+description = "Arx push metrics"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+ureq = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }

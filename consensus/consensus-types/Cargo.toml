@@ -1,0 +1,40 @@
+[package]
+name = "arx-consensus-types"
+description = "Arx consensus types"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-bitvec = { workspace = true }
+arx-crypto = { workspace = true }
+arx-crypto-derive = { workspace = true }
+arx-executor-types = { workspace = true }
+arx-infallible = { workspace = true }
+arx-short-hex-str = { workspace = true }
+arx-types = { workspace = true }
+bcs = { workspace = true }
+futures = { workspace = true }
+itertools = { workspace = true }
+mirai-annotations = { workspace = true }
+proptest = { workspace = true, optional = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+arx-types = { workspace = true, features = ["fuzzing"] }
+proptest = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+default = []
+fuzzing = ["proptest", "arx-types/fuzzing", "arx-crypto/fuzzing"]

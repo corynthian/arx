@@ -1,0 +1,37 @@
+[package]
+name = "arx-event-notifications"
+description = "The notification service offered by state sync for on-chain events"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+arx-channel = { workspace = true }
+arx-id-generator = { workspace = true }
+arx-infallible = { workspace = true }
+arx-state-view = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-types = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+arx-crypto = { workspace = true }
+arx-db = { workspace = true }
+arx-executor-test-helpers = { workspace = true }
+arx-temppath = { workspace = true }
+arx-vm = { workspace = true }
+arx-vm-genesis = { workspace = true }
+bcs = { workspace = true }
+claims = { workspace = true }
+move-binary-format = { workspace = true }
+move-core-types = { workspace = true }

@@ -1,0 +1,34 @@
+[package]
+name = "arx-network-builder"
+description = "Arx network builder for constructing a network"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+arx-channel = { workspace = true }
+arx-config = { workspace = true }
+arx-crypto = { workspace = true }
+arx-event-notifications = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-netcore = { workspace = true }
+arx-network = { workspace = true }
+arx-network-discovery = { workspace = true }
+arx-secure-storage = { workspace = true }
+arx-time-service = { workspace = true }
+arx-types = { workspace = true }
+async-trait = { workspace = true }
+bcs = { workspace = true }
+futures = { workspace = true }
+maplit = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }

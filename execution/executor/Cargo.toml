@@ -1,0 +1,55 @@
+[package]
+name = "arx-executor"
+description = "Arx executor"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-consensus-types = { workspace = true }
+arx-crypto = { workspace = true }
+arx-executor-types = { workspace = true }
+arx-gas = { workspace = true }
+arx-infallible = { workspace = true }
+arx-logger = { workspace = true }
+arx-metrics-core = { workspace = true }
+arx-scratchpad = { workspace = true }
+arx-secure-net = { workspace = true }
+arx-state-view = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-types = { workspace = true }
+arx-vm = { workspace = true }
+bcs = { workspace = true }
+fail = { workspace = true }
+itertools = { workspace = true }
+move-core-types = { workspace = true }
+once_cell = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+arx-cached-packages = { workspace = true }
+arx-config = { workspace = true }
+arx-db = { workspace = true }
+arx-executor-test-helpers = { workspace = true }
+arx-genesis = { workspace = true }
+arx-storage-interface = { workspace = true }
+arx-temppath = { workspace = true }
+arx-types = { workspace = true }
+arx-vm-genesis = { workspace = true }
+proptest = { workspace = true }
+rand = { workspace = true }
+
+[features]
+default = []
+fuzzing = ["arx-consensus-types/fuzzing", "arx-crypto/fuzzing", "arx-types/fuzzing", "arx-storage-interface/fuzzing"]
+failpoints = ["fail/failpoints", "arx-vm/failpoints"]
+consensus-only-perf-test = []
