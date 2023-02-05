@@ -282,7 +282,7 @@ Genesis step 1: Initialize ol framework account and core modules on chain.
 	// will be deployed <b>to</b>. This will be entirely managed by on-chain <a href="governance.md#0x1_governance">governance</a> and no entities have the key or privileges
     // <b>to</b> <b>use</b> this <a href="account.md#0x1_account">account</a>.
     <b>let</b> (arx, arx_signer_cap) = <a href="account.md#0x1_account_create_reserved_account">account::create_reserved_account</a>(@arx);
-    // Initialize <a href="account.md#0x1_account">account</a> configs on ol framework <a href="account.md#0x1_account">account</a>.
+    // Initialize <a href="account.md#0x1_account">account</a> configs on the arx framework <a href="account.md#0x1_account">account</a>.
     <a href="account.md#0x1_account_initialize">account::initialize</a>(&arx);
 
     <a href="transaction_validation.md#0x1_transaction_validation_initialize">transaction_validation::initialize</a>(

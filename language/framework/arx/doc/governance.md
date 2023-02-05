@@ -565,7 +565,9 @@ Stores the signer capability for a given address.
     <a href="system_addresses.md#0x1_system_addresses_assert_framework_reserved_address">system_addresses::assert_framework_reserved_address</a>(arx);
 
     <b>if</b> (!<b>exists</b>&lt;<a href="governance.md#0x1_governance_GovernanceResponsbility">GovernanceResponsbility</a>&gt;(@arx)) {
-        <b>move_to</b>(arx, <a href="governance.md#0x1_governance_GovernanceResponsbility">GovernanceResponsbility</a> { signer_caps: <a href="../../std/doc/simple_map.md#0x1_simple_map_create">simple_map::create</a>&lt;<b>address</b>, SignerCapability&gt;() });
+        <b>move_to</b>(arx, <a href="governance.md#0x1_governance_GovernanceResponsbility">GovernanceResponsbility</a> {
+		signer_caps: <a href="../../std/doc/simple_map.md#0x1_simple_map_create">simple_map::create</a>&lt;<b>address</b>, SignerCapability&gt;()
+	    });
     };
 
     <b>let</b> signer_caps = &<b>mut</b> <b>borrow_global_mut</b>&lt;<a href="governance.md#0x1_governance_GovernanceResponsbility">GovernanceResponsbility</a>&gt;(@arx).signer_caps;

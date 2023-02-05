@@ -254,7 +254,7 @@ Can only called during genesis to initialize the Arx coin.
 
 ## Function `destroy_mint_cap`
 
-Only called during genesis to destroy the ol framework account's mint capability once all
+Only called during genesis to destroy the arx framework accounts mint capability once all
 initial validators and accounts have been initialized during genesis.
 
 

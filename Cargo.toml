@@ -7,18 +7,6 @@ members = [
     "config/protocol-constants",
     "consensus",
     "consensus/consensus-types",
-    "language/arx-aggregator",
-    "language/arx-gas",
-    "language/arx-gas-algebra-ext",
-    "language/arx-transactional-test-harness",
-    "language/arx-vm",
-    "language/block-executor",
-    "language/e2e-tests",
-    "language/e2e-testsuite",
-    "language/framework",
-    "language/framework/cached-packages",
-    "language/transaction-builder",
-    "language/vm-genesis",
     "crates/arx",
     "crates/arx-bitvec",
     "crates/arx-build-info",
@@ -42,6 +30,19 @@ members = [
     "crates/arx-webserver",
     "crates/secure-net",
     "execution/db-bootstrapper",
+    "language/arx-aggregator",
+    "language/arx-gas",
+    "language/arx-gas-algebra-ext",
+    "language/arx-transactional-test-harness",
+    "language/arx-vm",
+    "language/block-executor",
+    "language/e2e-move-tests",
+    "language/e2e-tests",
+    "language/e2e-testsuite",
+    "language/framework",
+    "language/framework/cached-packages",
+    "language/transaction-builder",
+    "language/vm-genesis",
     "network",
     "network/builder",
     "network/discovery",
@@ -99,6 +100,7 @@ rust-version = "1.64"
 # Internal crate dependencies.
 # Please do not add any test features here: they should be declared by the individual crate.
 
+arx = { path = "crates/arx" }
 arx-accumulator = { path = "storage/accumulator" }
 arx-aggregator = { path = "language/arx-aggregator" }
 arx-api = { path = "api" }
