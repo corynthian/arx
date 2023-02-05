@@ -61,7 +61,7 @@ module arx::arx_coin {
         exists<MintCapStore>(signer::address_of(account))
     }
 
-    /// Only called during genesis to destroy the ol framework account's mint capability once all
+    /// Only called during genesis to destroy the arx framework accounts mint capability once all
     /// initial validators and accounts have been initialized during genesis.
     public(friend) fun destroy_mint_cap(arx: &signer) acquires MintCapStore {
         system_addresses::assert_arx(arx);

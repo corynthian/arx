@@ -130,7 +130,9 @@ module arx::governance {
         system_addresses::assert_framework_reserved_address(arx);
 
         if (!exists<GovernanceResponsbility>(@arx)) {
-            move_to(arx, GovernanceResponsbility { signer_caps: simple_map::create<address, SignerCapability>() });
+            move_to(arx, GovernanceResponsbility {
+		signer_caps: simple_map::create<address, SignerCapability>()
+	    });
         };
 
         let signer_caps = &mut borrow_global_mut<GovernanceResponsbility>(@arx).signer_caps;

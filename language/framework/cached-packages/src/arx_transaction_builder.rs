@@ -248,6 +248,9 @@ pub enum EntryFunctionCall {
         should_pass: bool,
     },
 
+    /// Initializes the genesis liquidity pool state.
+    LiquidityPoolInitialize {},
+
     /// Entry function that can be used to transfer, if allow_ungated_transfer is set true.
     ObjectTransferCall {
         object_id: AccountAddress,
@@ -493,6 +496,7 @@ impl EntryFunctionCall {
                 proposal_id,
                 should_pass,
             } => governance_vote(stake_pool, proposal_id, should_pass),
+            LiquidityPoolInitialize {} => liquidity_pool_initialize(),
             ObjectTransferCall { object_id, to } => object_transfer_call(object_id, to),
             ResourceAccountCreateResourceAccount {
                 seed,
@@ -1136,6 +1140,22 @@ pub fn governance_vote(
             bcs::to_bytes(&proposal_id).unwrap(),
             bcs::to_bytes(&should_pass).unwrap(),
         ],
+    ))
+}
+
+/// Initializes the genesis liquidity pool state.
+pub fn liquidity_pool_initialize() -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("liquidity_pool").to_owned(),
+        ),
+        ident_str!("initialize").to_owned(),
+        vec![],
+        vec![],
     ))
 }
 
@@ -1800,6 +1820,14 @@ mod decoder {
         }
     }
 
+    pub fn liquidity_pool_initialize(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(_script) = payload {
+            Some(EntryFunctionCall::LiquidityPoolInitialize {})
+        } else {
+            None
+        }
+    }
+
     pub fn object_transfer_call(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::ObjectTransferCall {
@@ -2121,6 +2149,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "governance_vote".to_string(),
             Box::new(decoder::governance_vote),
+        );
+        map.insert(
+            "liquidity_pool_initialize".to_string(),
+            Box::new(decoder::liquidity_pool_initialize),
         );
         map.insert(
             "object_transfer_call".to_string(),

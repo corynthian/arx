@@ -17,7 +17,6 @@ module arx::genesis {
     use arx::gas_schedule;
     use arx::reconfiguration;
     use arx::validator;
-    // use arx::staking_contract;
     use arx::validation_config;
     use arx::state_storage;
     use arx::storage_gas;
@@ -25,7 +24,6 @@ module arx::genesis {
     use arx::transaction_fee;
     use arx::transaction_validation;
     use arx::version;
-    // use arx::vesting;
 
     const EDUPLICATE_ACCOUNT: u64 = 1;
     const EACCOUNT_DOES_NOT_EXIST: u64 = 2;
@@ -77,7 +75,7 @@ module arx::genesis {
 	// will be deployed to. This will be entirely managed by on-chain governance and no entities have the key or privileges
         // to use this account.
         let (arx, arx_signer_cap) = account::create_reserved_account(@arx);
-        // Initialize account configs on ol framework account.
+        // Initialize account configs on the arx framework account.
         account::initialize(&arx);
 
         transaction_validation::initialize(
@@ -134,6 +132,9 @@ module arx::genesis {
         // Give transaction_fee module BurnCapability<ArxCoin> so it can burn gas.
         transaction_fee::store_arx_coin_burn_cap(arx, burn_cap);
     }
+
+    // Genesis step 3: Initialize seignorage coins.
+    // fun initialize_seignorage_coins(arx: &signer) { }
 
     /// Only called for testnets and e2e tests.
     fun initialize_core_resources_and_arx_coin(

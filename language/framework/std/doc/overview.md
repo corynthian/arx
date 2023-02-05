@@ -43,6 +43,7 @@ This is the reference documentation of the Open Libra standard library.
 -  [`0x1::table_with_length`](table_with_length.md#0x1_table_with_length)
 -  [`0x1::type_info`](type_info.md#0x1_type_info)
 -  [`0x1::u256`](u256.md#0x1_u256)
+-  [`0x1::uq64x64`](uq64x64.md#0x1_uq64x64)
 -  [`0x1::vector`](vector.md#0x1_vector)
 
 

@@ -192,7 +192,7 @@ spec arx::coin {
         aborts_if coin_address != account_addr;
         aborts_if exists<CoinInfo<CoinType>>(account_addr);
         aborts_if len(name) > MAX_COIN_NAME_LENGTH;
-        aborts_if len(symbol) > MAX_COIN_SYMBArx_LENGTH;
+        aborts_if len(symbol) > MAX_COIN_SYMBOL_LENGTH;
     }
 
     spec initialize_internal<CoinType>(

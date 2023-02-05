@@ -55,7 +55,7 @@ module arx::coin {
     const ECOIN_NAME_TOO_LONG: u64 = 12;
 
     /// Symbol of the coin is too long
-    const ECOIN_SYMBArx_TOO_LONG: u64 = 13;
+    const ECOIN_SYMBOL_TOO_LONG: u64 = 13;
 
     /// The value of aggregatable coin used for transaction fees redistribution does not fit in u64.
     const EAGGREGATABLE_COIN_VALUE_TOO_LARGE: u64 = 14;
@@ -65,7 +65,7 @@ module arx::coin {
     //
 
     const MAX_COIN_NAME_LENGTH: u64 = 32;
-    const MAX_COIN_SYMBArx_LENGTH: u64 = 10;
+    const MAX_COIN_SYMBOL_LENGTH: u64 = 10;
 
     /// Core data structures
 
@@ -76,8 +76,7 @@ module arx::coin {
     }
 
     /// Represents a coin with aggregator as its value. This allows to update
-    /// the coin in every transaction avoiding read-modify-write conflicts. Only
-    /// used for gas fees distribution by open libra (0x1).
+    /// the coin in every transaction avoiding read-modify-write conflicts. 
     struct AggregatableCoin<phantom CoinType> has store {
         /// Amount of aggregatable coin this address has.
         value: Aggregator,
@@ -446,7 +445,7 @@ module arx::coin {
         );
 
         assert!(string::length(&name) <= MAX_COIN_NAME_LENGTH, error::invalid_argument(ECOIN_NAME_TOO_LONG));
-        assert!(string::length(&symbol) <= MAX_COIN_SYMBArx_LENGTH, error::invalid_argument(ECOIN_SYMBArx_TOO_LONG));
+        assert!(string::length(&symbol) <= MAX_COIN_SYMBOL_LENGTH, error::invalid_argument(ECOIN_SYMBOL_TOO_LONG));
 
         let coin_info = CoinInfo<CoinType> {
             name,

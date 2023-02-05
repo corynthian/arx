@@ -7,7 +7,7 @@ use arx_framework::{ReleaseOptions, ReleaseTarget};
 use clap::Parser;
 
 #[derive(Parser)]
-#[clap(name = "ol-framework", author, version, propagate_version = true)]
+#[clap(name = "arx-framework", author, version, propagate_version = true)]
 enum Commands {
     /// Creates an Arx framework release for the specified target.
     Release(StandardRelease),
