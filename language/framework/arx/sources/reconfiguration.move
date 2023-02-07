@@ -21,9 +21,8 @@ module arx::reconfiguration {
     friend arx::genesis;
     friend arx::version;
 
-    /// Event that signals consensus to start a new epoch,
-    /// with new configuration information. This is also called a
-    /// "reconfiguration event"
+    /// Event that signals consensus to start a new epoch with new configuration information. This is
+    /// also called a "reconfiguration event".
     struct NewEpochEvent has drop, store {
         epoch: u64,
     }
@@ -32,7 +31,7 @@ module arx::reconfiguration {
     struct Configuration has key {
         /// Epoch number
         epoch: u64,
-        /// Time of last reconfiguration. Only changes on reconfiguration events.
+        /// Time of last reconfiguration. Only changes on `NewEpochEvent`s.
         last_reconfiguration_time: u64,
         /// Event handle for reconfiguration events
         events: event::EventHandle<NewEpochEvent>,
@@ -60,7 +59,10 @@ module arx::reconfiguration {
         system_addresses::assert_arx(arx);
 
         // assert it matches `new_epoch_event_key()`, otherwise the event can't be recognized
-        assert!(account::get_guid_next_creation_num(signer::address_of(arx)) == 2, error::invalid_state(EINVALID_GUID_FOR_EVENT));
+        assert!(
+	    account::get_guid_next_creation_num(signer::address_of(arx)) == 2,
+	    error::invalid_state(EINVALID_GUID_FOR_EVENT),
+	);
         move_to<Configuration>(
             arx,
             Configuration {
@@ -72,7 +74,8 @@ module arx::reconfiguration {
     }
 
     /// Private function to temporarily halt reconfiguration.
-    /// This function should only be used for offline WriteSet generation purpose and should never be invoked on chain.
+    /// This function should only be used for offline WriteSet generation purpose and should never be
+    /// invoked on chain.
     fun disable_reconfiguration(arx: &signer) {
         system_addresses::assert_arx(arx);
         assert!(reconfiguration_enabled(), error::invalid_state(ECONFIGURATION));
@@ -80,7 +83,8 @@ module arx::reconfiguration {
     }
 
     /// Private function to resume reconfiguration.
-    /// This function should only be used for offline WriteSet generation purpose and should never be invoked on chain.
+    /// This function should only be used for offline WriteSet generation purpose and should never be
+    /// invoked on chain.
     fun enable_reconfiguration(arx: &signer) acquires DisableReconfiguration {
         system_addresses::assert_arx(arx);
 
@@ -138,7 +142,10 @@ module arx::reconfiguration {
 
         storage_gas::on_reconfig();
 
-        assert!(current_time > config_ref.last_reconfiguration_time, error::invalid_state(EINVALID_BLOCK_TIME));
+        assert!(
+	    current_time > config_ref.last_reconfiguration_time,
+	    error::invalid_state(EINVALID_BLOCK_TIME)
+	);
         config_ref.last_reconfiguration_time = current_time;
         spec {
             assume config_ref.epoch + 1 <= MAX_U64;
@@ -161,8 +168,8 @@ module arx::reconfiguration {
         borrow_global<Configuration>(@arx).epoch
     }
 
-    /// Emit a `NewEpochEvent` event. This function will be invoked by genesis directly to generate the very first
-    /// reconfiguration event.
+    /// Emit a `NewEpochEvent` event. This function will be invoked by genesis directly to generate the
+    /// very first reconfiguration event.
     fun emit_genesis_reconfiguration_event() acquires Configuration {
         let config_ref = borrow_global_mut<Configuration>(@arx);
         assert!(config_ref.epoch == 0 && config_ref.last_reconfiguration_time == 0, error::invalid_state(ECONFIGURATION));

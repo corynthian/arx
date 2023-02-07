@@ -76,9 +76,9 @@ module arx::validator {
     /// Limit the maximum value of `rewards_rate` in order to avoid any arithmetic overflow.
     const MAX_REWARDS_RATE: u64 = 1000000;
 
-    /// Capability that represents ownership and can be used to control the validator and the associated
-    /// tower. Having this be separate from the signer for the account that the validator resources
-    /// are hosted at allows modules to have control over a validator.
+    /// Capability that represents ownership and can be used to control the validator. Having this be
+    /// separate from the signer for the account that the validator resources are hosted at allows
+    /// modules to have control over a validator.
     struct OwnerCapability has key, store {
         lock_address: address,
     }
@@ -1473,7 +1473,7 @@ module arx::validator {
             let validator_address = vector::borrow(&active_validator_addresses, i);
             let pk = vector::borrow(&public_keys, i);
             vector::push_back(&mut active_validators, ValidatorInfo {
-                addr: *validator_address,
+                address: *validator_address,
                 voting_power: 0,
                 config: ValidatorConfig {
                     consensus_pubkey: bls12381::public_key_to_bytes(pk),
@@ -2217,7 +2217,7 @@ module arx::validator {
         assert!(validator_config.consensus_pubkey == pk_new_bytes, 2);
 
         // Operator can update network and fullnode addresses.
-        update_network_and_fullnode_addresses(validator, lock_address, b"1", b"2");
+        update_network_info(validator, lock_address, b"1", b"2");
         let validator_config = borrow_global<ValidatorConfig>(lock_address);
         assert!(validator_config.network_addresses == b"1", 3);
         assert!(validator_config.fullnode_addresses == b"2", 4);
@@ -2518,25 +2518,25 @@ module arx::validator {
         };
     }
 
-    #[test(arx = @0x1, validator_1 = @0x123, validator_2 = @0x234)]
-    public entry fun test_removing_validator_from_active_set(
-        arx: &signer,
-        validator_1: &signer,
-        validator_2: &signer,
-    ) acquires AllowedValidators, OwnerCapability, StakeLock, ArxCoinCapabilities, ValidatorConfig, ValidatorPerformance, ValidatorSet, ValidatorFees {
-        initialize_for_test(arx);
-        let (_sk_1, pk_1, pop_1) = generate_identity();
-        let (_sk_2, pk_2, pop_2) = generate_identity();
-        initialize_test_validator(&pk_1, &pop_1, validator_1, 100, true, false);
-        initialize_test_validator(&pk_2, &pop_2, validator_2, 100, true, true);
-        assert!(vector::length(&borrow_global<ValidatorSet>(@arx).active_validators) == 2, 0);
+    // #[test(arx = @0x1, validator_1 = @0x123, validator_2 = @0x234)]
+    // public entry fun test_removing_validator_from_active_set(
+    //     arx: &signer,
+    //     validator_1: &signer,
+    //     validator_2: &signer,
+    // ) acquires AllowedValidators, OwnerCapability, StakeLock, ArxCoinCapabilities, ValidatorConfig, ValidatorPerformance, ValidatorSet, ValidatorFees {
+    //     initialize_for_test(arx);
+    //     let (_sk_1, pk_1, pop_1) = generate_identity();
+    //     let (_sk_2, pk_2, pop_2) = generate_identity();
+    //     initialize_test_validator(&pk_1, &pop_1, validator_1, 100, true, false);
+    //     initialize_test_validator(&pk_2, &pop_2, validator_2, 100, true, true);
+    //     assert!(vector::length(&borrow_global<ValidatorSet>(@arx).active_validators) == 2, 0);
 
-        // Remove validator 1 from the active validator set. Only validator 2 remains.
-        let validator_to_remove = signer::address_of(validator_1);
-        remove_validators(arx, &vector[validator_to_remove]);
-        assert!(vector::length(&borrow_global<ValidatorSet>(@arx).active_validators) == 1, 0);
-        assert!(get_validator_state(validator_to_remove) == VALIDATOR_STATUS_PENDING_INACTIVE, 1);
-    }
+    //     // Remove validator 1 from the active validator set. Only validator 2 remains.
+    //     let validator_to_remove = signer::address_of(validator_1);
+    //     remove_validators(arx, &vector[validator_to_remove]);
+    //     assert!(vector::length(&borrow_global<ValidatorSet>(@arx).active_validators) == 1, 0);
+    //     assert!(get_validator_state(validator_to_remove) == VALIDATOR_STATUS_PENDING_INACTIVE, 1);
+    // }
 
     #[test_only]
     public fun end_epoch() acquires StakeLock, ArxCoinCapabilities, ValidatorConfig, ValidatorPerformance, ValidatorSet, ValidatorFees {

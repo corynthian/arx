@@ -290,7 +290,7 @@ module arx::transaction_fee {
         register_proposer_for_fee_collection(bob_addr);
 
         // Collected fees from Bob must have been assigned to Alice.
-        assert!(stake::get_validator_fee(alice_addr) == 900, 0);
+        assert!(validator::get_validator_fee(alice_addr) == 900, 0);
         assert!(coin::balance<ArxCoin>(alice_addr) == 10000, 0);
         assert!(coin::balance<ArxCoin>(bob_addr) == 9000, 0);
         assert!(coin::balance<ArxCoin>(cararx_addr) == 10000, 0);
@@ -314,9 +314,9 @@ module arx::transaction_fee {
         register_proposer_for_fee_collection(cararx_addr);
 
         // Collected fees should have been assigned to Bob because he was the peoposer.
-        assert!(stake::get_validator_fee(alice_addr) == 900, 0);
+        assert!(validator::get_validator_fee(alice_addr) == 900, 0);
         assert!(coin::balance<ArxCoin>(alice_addr) == 10000, 0);
-        assert!(stake::get_validator_fee(bob_addr) == 8100, 0);
+        assert!(validator::get_validator_fee(bob_addr) == 8100, 0);
         assert!(coin::balance<ArxCoin>(bob_addr) == 0, 0);
         assert!(coin::balance<ArxCoin>(cararx_addr) == 10000, 0);
 
@@ -340,7 +340,7 @@ module arx::transaction_fee {
 
         // Carol must have some fees assigned now.
         let collected_fees = borrow_global<CollectedFeesPerBlock>(@arx);
-        assert!(stake::get_validator_fee(cararx_addr) == 1800, 0);
+        assert!(validator::get_validator_fee(cararx_addr) == 1800, 0);
         assert!(coin::is_aggregatable_coin_zero(&collected_fees.amount), 0);
         assert!(*option::borrow(&collected_fees.proposer) == alice_addr, 0);
         assert!(*option::borrow(&coin::supply<ArxCoin>()) == 28800, 0);

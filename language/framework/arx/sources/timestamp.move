@@ -21,14 +21,16 @@ module arx::timestamp {
     /// An invalid timestamp was provided
     const EINVALID_TIMESTAMP: u64 = 2;
 
-    /// Marks that time has started. This can only be called from genesis and with the ol framework account.
+    /// Marks that time has started. This can only be called from genesis and with the arx framework
+    /// account.
     public(friend) fun set_time_has_started(arx: &signer) {
         system_addresses::assert_arx(arx);
         let timer = CurrentTimeMicroseconds { microseconds: 0 };
         move_to(arx, timer);
     }
 
-    /// Updates the wall clock time by consensus. Requires VM privilege and will be invoked during block prologue.
+    /// Updates the wall clock time by consensus. Requires VM privilege and will be invoked during block
+    /// prologue.
     public fun update_global_time(
         account: &signer,
         proposer: address,
