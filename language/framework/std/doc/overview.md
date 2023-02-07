@@ -14,6 +14,7 @@ This is the reference documentation of the Open Libra standard library.
 
 -  [`0x1::acl`](acl.md#0x1_acl)
 -  [`0x1::any`](any.md#0x1_any)
+-  [`0x1::any_ref`](any_ref.md#0x1_any_ref)
 -  [`0x1::bcs`](bcs.md#0x1_bcs)
 -  [`0x1::bit_vector`](bit_vector.md#0x1_bit_vector)
 -  [`0x1::bls12381`](bls12381.md#0x1_bls12381)

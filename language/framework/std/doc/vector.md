@@ -27,6 +27,7 @@ the return on investment didn't seem worth it for these simple functions.
 -  [Function `singleton`](#0x1_vector_singleton)
 -  [Function `reverse`](#0x1_vector_reverse)
 -  [Function `append`](#0x1_vector_append)
+-  [Function `append_nondestructive`](#0x1_vector_append_nondestructive)
 -  [Function `is_empty`](#0x1_vector_is_empty)
 -  [Function `contains`](#0x1_vector_contains)
 -  [Function `index_of`](#0x1_vector_index_of)
@@ -333,6 +334,34 @@ Pushes all of the elements of the <code>other</code> vector into the <code>lhs</
     <a href="vector.md#0x1_vector_reverse">reverse</a>(&<b>mut</b> other);
     <b>while</b> (!<a href="vector.md#0x1_vector_is_empty">is_empty</a>(&other)) <a href="vector.md#0x1_vector_push_back">push_back</a>(lhs, <a href="vector.md#0x1_vector_pop_back">pop_back</a>(&<b>mut</b> other));
     <a href="vector.md#0x1_vector_destroy_empty">destroy_empty</a>(other);
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_vector_append_nondestructive"></a>
+
+## Function `append_nondestructive`
+
+The same as append except does not destroy empty <code>other</code>.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="vector.md#0x1_vector_append_nondestructive">append_nondestructive</a>&lt;T&gt;(lhs: &<b>mut</b> <a href="vector.md#0x1_vector">vector</a>&lt;T&gt;, other: &<b>mut</b> <a href="vector.md#0x1_vector">vector</a>&lt;T&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="vector.md#0x1_vector_append_nondestructive">append_nondestructive</a>&lt;T&gt;(lhs: &<b>mut</b> <a href="vector.md#0x1_vector">vector</a>&lt;T&gt;, other: &<b>mut</b> <a href="vector.md#0x1_vector">vector</a>&lt;T&gt;) {
+	<a href="vector.md#0x1_vector_reverse">reverse</a>(other);
+    <b>while</b> (!<a href="vector.md#0x1_vector_is_empty">is_empty</a>(other)) {
+        <a href="vector.md#0x1_vector_push_back">push_back</a>(lhs, <a href="vector.md#0x1_vector_pop_back">pop_back</a>(other));
+    }
 }
 </code></pre>
 

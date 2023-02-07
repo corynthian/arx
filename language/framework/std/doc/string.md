@@ -305,9 +305,9 @@ boundary.
 
 ## Function `sub_string`
 
-Returns a sub-string using the given byte indices, where <code>i</code> is the first byte position and <code>j</code> is the start
-of the first byte not included (or the length of the string). The indices must be at valid utf8 char boundaries,
-guaranteeing that the result is valid utf8.
+Returns a sub-string using the given byte indices, where <code>i</code> is the first byte position and <code>j</code>
+is the start of the first byte not included (or the length of the string). The indices must be
+at valid utf8 char boundaries, guaranteeing that the result is valid utf8.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="string.md#0x1_string_sub_string">sub_string</a>(s: &<a href="string.md#0x1_string_String">string::String</a>, i: u64, j: u64): <a href="string.md#0x1_string_String">string::String</a>

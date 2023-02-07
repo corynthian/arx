@@ -92,6 +92,13 @@ module std::vector {
         pragma intrinsic = true;
     }
 
+    /// The same as append except does not destroy empty `other`.
+    public fun append_nondestructive<T>(lhs: &mut vector<T>, other: &mut vector<T>) {
+	reverse(other);
+        while (!is_empty(other)) {
+            push_back(lhs, pop_back(other));
+        }
+    }
 
     /// Return `true` if the vector `v` has no elements and `false` otherwise.
     public fun is_empty<Element>(v: &vector<Element>): bool {

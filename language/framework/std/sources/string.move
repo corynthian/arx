@@ -67,9 +67,9 @@ module std::string {
         *s = front;
     }
 
-    /// Returns a sub-string using the given byte indices, where `i` is the first byte position and `j` is the start
-    /// of the first byte not included (or the length of the string). The indices must be at valid utf8 char boundaries,
-    /// guaranteeing that the result is valid utf8.
+    /// Returns a sub-string using the given byte indices, where `i` is the first byte position and `j`
+    /// is the start of the first byte not included (or the length of the string). The indices must be
+    /// at valid utf8 char boundaries, guaranteeing that the result is valid utf8.
     public fun sub_string(s: &String, i: u64, j: u64): String {
         let bytes = &s.bytes;
         let l = vector::length(bytes);
