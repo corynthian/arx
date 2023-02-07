@@ -746,7 +746,7 @@ Burn liquidity coins (LP) and get back X and Y from its reserves. Permissionless
 		returned_y_val: y_to_return_val,
 		lp_tokens_burned: burned_lp_coins_val,
 	    });
-	
+
 	(x_coin_to_return, y_coin_to_return)
 }
 </code></pre>

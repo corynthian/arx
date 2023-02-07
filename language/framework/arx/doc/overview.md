@@ -1,10 +1,10 @@
 
-<a name="@Open_Libra_0"></a>
+<a name="@Arx_0"></a>
 
-# Open Libra
+## Arx
 
 
-This is the reference documentation of the Open Libra framework.
+This is the reference documentation of the Arx framework.
 
 
 <a name="@Index_1"></a>

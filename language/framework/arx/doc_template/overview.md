@@ -1,6 +1,6 @@
-# Open Libra
+## Arx
 
-This is the reference documentation of the Open Libra framework.
+This is the reference documentation of the Arx framework.
 
 ## Index
 
