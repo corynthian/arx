@@ -105,8 +105,8 @@ Store the SignerCapabilities of accounts under the on-chain governance's control
 
 ## Resource `GovernanceConfig`
 
-Configurations of the governance, set during Genesis and can be updated by the same process offered
-by this governance module.
+Configurations of the governance, set during Genesis and can be updated by the same process
+offered by this governance module.
 
 
 <pre><code><b>struct</b> <a href="governance.md#0x1_governance_GovernanceConfig">GovernanceConfig</a> <b>has</b> key
@@ -208,7 +208,8 @@ Records to track the proposals each stake pool has been used to vote on.
 ## Resource `ApprovedExecutionHashes`
 
 Used to track which execution script hashes have been approved by governance.
-This is required to bypass cases where the execution scripts exceed the size limit imposed by mempool.
+This is required to bypass cases where the execution scripts exceed the size limit imposed by
+mempool.
 
 
 <pre><code><b>struct</b> <a href="governance.md#0x1_governance_ApprovedExecutionHashes">ApprovedExecutionHashes</a> <b>has</b> key
@@ -583,9 +584,8 @@ Stores the signer capability for a given address.
 
 ## Function `initialize`
 
-Initializes the state for governance. Can only be called during Genesis with a signer
-for the arx (0x1) account.
-This function is private because it's called directly from the vm.
+Initializes the state for governance. Can only be called during Genesis with a signer for the
+arx (0x1) account. This function is private because it's called directly from the vm.
 
 
 <pre><code><b>fun</b> <a href="governance.md#0x1_governance_initialize">initialize</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, min_voting_threshold: u128, required_proposer_stake: u64, voting_duration_secs: u64)
@@ -633,8 +633,8 @@ This function is private because it's called directly from the vm.
 
 ## Function `update_governance_config`
 
-Update the governance configurations. This can only be called as part of resolving a proposal in this same
-governance.
+Update the governance configurations. This can only be called as part of resolving a proposal in
+this same governance.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="governance.md#0x1_governance_update_governance_config">update_governance_config</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, min_voting_threshold: u128, required_proposer_stake: u64, voting_duration_secs: u64)
@@ -807,7 +807,10 @@ is resolved, only the exact script with matching hash can be successfully execut
     is_multi_step_proposal: bool,
 ) <b>acquires</b> <a href="governance.md#0x1_governance_GovernanceConfig">GovernanceConfig</a>, <a href="governance.md#0x1_governance_GovernanceEvents">GovernanceEvents</a> {
     <b>let</b> proposer_address = <a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(proposer);
-    //<b>assert</b>!(validator::get_delegated_voter(stake_pool) == proposer_address, <a href="../../std/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(ENOT_DELEGATED_VOTER));
+    //<b>assert</b>!(
+	//  validator::get_delegated_voter(stake_pool) == proposer_address,
+	//  <a href="../../std/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(ENOT_DELEGATED_VOTER)
+	//);
 
     // The proposer's stake needs <b>to</b> be at least the required bond amount.
     <b>let</b> governance_config = <b>borrow_global</b>&lt;<a href="governance.md#0x1_governance_GovernanceConfig">GovernanceConfig</a>&gt;(@arx);
@@ -1188,9 +1191,10 @@ Return the voting power a stake pool has with respect to governance proposals.
     <b>let</b> allow_validator_set_change = <a href="validation_config.md#0x1_validation_config_get_allow_validator_set_change">validation_config::get_allow_validator_set_change</a>(&<a href="validation_config.md#0x1_validation_config_get">validation_config::get</a>());
     <b>if</b> (allow_validator_set_change) {
         <b>let</b> (active, _, pending_active, pending_inactive) = <a href="validator.md#0x1_validator_get_stake">validator::get_stake</a>(pool_address);
-        // We calculate the <a href="voting.md#0x1_voting">voting</a> power <b>as</b> total non-inactive stakes of the pool. Even <b>if</b> the <a href="validator.md#0x1_validator">validator</a> is not in the
-        // active <a href="validator.md#0x1_validator">validator</a> set, <b>as</b> long <b>as</b> they have a lockup (separately checked in create_proposal and <a href="voting.md#0x1_voting">voting</a>), their
-        // stake would still count in their <a href="voting.md#0x1_voting">voting</a> power for <a href="governance.md#0x1_governance">governance</a> proposals.
+        // We calculate the <a href="voting.md#0x1_voting">voting</a> power <b>as</b> total non-inactive stakes of the pool. Even <b>if</b> the
+	    // <a href="validator.md#0x1_validator">validator</a> is not in the active <a href="validator.md#0x1_validator">validator</a> set, <b>as</b> long <b>as</b> they have a lockup (separately
+	    // checked in create_proposal and <a href="voting.md#0x1_voting">voting</a>), their stake would still count in their <a href="voting.md#0x1_voting">voting</a>
+	    // power for <a href="governance.md#0x1_governance">governance</a> proposals.
         active + pending_active + pending_inactive
     } <b>else</b> {
         <a href="validator.md#0x1_validator_get_current_epoch_voting_power">validator::get_current_epoch_voting_power</a>(pool_address)

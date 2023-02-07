@@ -3,7 +3,8 @@
 
 # Module `0x1::liquidity_pool`
 
-A feeless liquidity pool implementation.
+A feeless liquidity pool implementation. Initialised at genesis and subsequently controlled by the
+Arx governance account.
 
 
 -  [Struct `LP`](#0x1_liquidity_pool_LP)
@@ -13,15 +14,16 @@ A feeless liquidity pool implementation.
 -  [Struct `LiquidityAddedEvent`](#0x1_liquidity_pool_LiquidityAddedEvent)
 -  [Struct `LiquidityRemovedEvent`](#0x1_liquidity_pool_LiquidityRemovedEvent)
 -  [Struct `SwapEvent`](#0x1_liquidity_pool_SwapEvent)
--  [Struct `OracleUpdatedEvent`](#0x1_liquidity_pool_OracleUpdatedEvent)
+-  [Struct `OracleUpdateEvent`](#0x1_liquidity_pool_OracleUpdateEvent)
 -  [Constants](#@Constants_0)
--  [Function `initialize`](#0x1_liquidity_pool_initialize)
 -  [Function `register`](#0x1_liquidity_pool_register)
 -  [Function `mint`](#0x1_liquidity_pool_mint)
 -  [Function `burn`](#0x1_liquidity_pool_burn)
 -  [Function `swap`](#0x1_liquidity_pool_swap)
 -  [Function `update_oracle`](#0x1_liquidity_pool_update_oracle)
 -  [Function `assert_lp_value_increase`](#0x1_liquidity_pool_assert_lp_value_increase)
+-  [Function `get_cumulative_prices`](#0x1_liquidity_pool_get_cumulative_prices)
+-  [Function `get_epoch_twap`](#0x1_liquidity_pool_get_epoch_twap)
 
 
 <pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
@@ -31,6 +33,7 @@ A feeless liquidity pool implementation.
 <b>use</b> <a href="event.md#0x1_event">0x1::event</a>;
 <b>use</b> <a href="../../std/doc/math128.md#0x1_math128">0x1::math128</a>;
 <b>use</b> <a href="../../std/doc/math64.md#0x1_math64">0x1::math64</a>;
+<b>use</b> <a href="reconfiguration.md#0x1_reconfiguration">0x1::reconfiguration</a>;
 <b>use</b> <a href="../../std/doc/stable_curve.md#0x1_stable_curve">0x1::stable_curve</a>;
 <b>use</b> <a href="../../std/doc/string.md#0x1_string">0x1::string</a>;
 <b>use</b> <a href="system_addresses.md#0x1_system_addresses">0x1::system_addresses</a>;
@@ -90,55 +93,79 @@ Liquidity pool with cumulative price aggregation.
 <code>coin_x_reserve: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;X&gt;</code>
 </dt>
 <dd>
-
+ The amount of coin <code>X</code> held in reserves.
 </dd>
 <dt>
 <code>coin_y_reserve: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;Y&gt;</code>
 </dt>
 <dd>
-
+ The amount of coin <code>Y</code> held in reserves.
+</dd>
+<dt>
+<code>last_epoch_timestamp: u64</code>
+</dt>
+<dd>
+ The timestamp of the last epoch where the oracle is updated.
 </dd>
 <dt>
 <code>last_block_timestamp: u64</code>
 </dt>
 <dd>
-
+ The timestamp of the last block where the oracle was updated.
 </dd>
 <dt>
 <code>last_price_x_cumulative: u128</code>
 </dt>
 <dd>
-
+ The last cumulative price in <code>X</code>.
 </dd>
 <dt>
 <code>last_price_y_cumulative: u128</code>
 </dt>
 <dd>
-
+ The last cumulative price in <code>Y</code>.
+</dd>
+<dt>
+<code>epoch_samples: u128</code>
+</dt>
+<dd>
+ The number of cumulative price samples taken across the last epoch.
+</dd>
+<dt>
+<code>epoch_twap_x: u128</code>
+</dt>
+<dd>
+ The time weighted average price in <code>X</code>.
+</dd>
+<dt>
+<code>epoch_twap_y: u128</code>
+</dt>
+<dd>
+ The time weighted average price in <code>Y</code>.
 </dd>
 <dt>
 <code>lp_mint_cap: <a href="coin.md#0x1_coin_MintCapability">coin::MintCapability</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">liquidity_pool::LP</a>&lt;X, Y, Curve&gt;&gt;</code>
 </dt>
 <dd>
-
+ The liquidity pools mint capability.
 </dd>
 <dt>
 <code>lp_burn_cap: <a href="coin.md#0x1_coin_BurnCapability">coin::BurnCapability</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">liquidity_pool::LP</a>&lt;X, Y, Curve&gt;&gt;</code>
 </dt>
 <dd>
-
+ The liquidity pools burn capability.
 </dd>
 <dt>
 <code>x_scale: u64</code>
 </dt>
 <dd>
-
+ The scaling factor of coin <code>X</code>.
 </dd>
 <dt>
 <code>y_scale: u64</code>
 </dt>
 <dd>
-
+ The scaling factor of coin <code>Y</code>.
 </dd>
 </dl>
 
@@ -187,7 +214,7 @@ Liquidity pool events.
 
 </dd>
 <dt>
-<code>oracle_update_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_OracleUpdatedEvent">liquidity_pool::OracleUpdatedEvent</a>&lt;X, Y, Curve&gt;&gt;</code>
+<code>oracle_update_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_OracleUpdateEvent">liquidity_pool::OracleUpdateEvent</a>&lt;X, Y, Curve&gt;&gt;</code>
 </dt>
 <dd>
 
@@ -351,14 +378,14 @@ A swap was made in a liquidity pool.
 
 </details>
 
-<a name="0x1_liquidity_pool_OracleUpdatedEvent"></a>
+<a name="0x1_liquidity_pool_OracleUpdateEvent"></a>
 
-## Struct `OracleUpdatedEvent`
+## Struct `OracleUpdateEvent`
 
 The cumulative price oracle was updated.
 
 
-<pre><code><b>struct</b> <a href="liquidity_pool.md#0x1_liquidity_pool_OracleUpdatedEvent">OracleUpdatedEvent</a>&lt;X, Y, Curve&gt; <b>has</b> drop, store
+<pre><code><b>struct</b> <a href="liquidity_pool.md#0x1_liquidity_pool_OracleUpdateEvent">OracleUpdateEvent</a>&lt;X, Y, Curve&gt; <b>has</b> drop, store
 </code></pre>
 
 
@@ -376,6 +403,24 @@ The cumulative price oracle was updated.
 </dd>
 <dt>
 <code>last_price_y_cumulative: u128</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>epoch_samples: u128</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>epoch_twap_x: u128</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>epoch_twap_y: u128</code>
 </dt>
 <dd>
 
@@ -490,36 +535,11 @@ Minimum liquidity.
 
 
 
-<a name="0x1_liquidity_pool_initialize"></a>
-
-## Function `initialize`
-
-Initializes the genesis liquidity pool state.
-
-
-<pre><code><b>public</b> entry <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_initialize">initialize</a>(<a href="arx_account.md#0x1_arx_account">arx_account</a>: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> entry <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_initialize">initialize</a>(<a href="arx_account.md#0x1_arx_account">arx_account</a>: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>) {
-	<a href="system_addresses.md#0x1_system_addresses_assert_arx">system_addresses::assert_arx</a>(<a href="arx_account.md#0x1_arx_account">arx_account</a>);
-}
-</code></pre>
-
-
-
-</details>
-
 <a name="0x1_liquidity_pool_register"></a>
 
 ## Function `register`
 
-Register a liquidity pool for pair <code>X:Y</code>. This function is only callable
+Register a liquidity pool for pair <code>X:Y</code>. This function is only callable by the <code>arx</code> account.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_register">register</a>&lt;X, Y, Curve&gt;(<a href="arx_account.md#0x1_arx_account">arx_account</a>: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
@@ -570,9 +590,13 @@ Register a liquidity pool for pair <code>X:Y</code>. This function is only calla
 	<b>let</b> pool = <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt; {
 	    coin_x_reserve: <a href="coin.md#0x1_coin_zero">coin::zero</a>&lt;X&gt;(),
 	    coin_y_reserve: <a href="coin.md#0x1_coin_zero">coin::zero</a>&lt;Y&gt;(),
+	    last_epoch_timestamp: <a href="reconfiguration.md#0x1_reconfiguration_last_reconfiguration_time">reconfiguration::last_reconfiguration_time</a>(),
 	    last_block_timestamp: 0,
 	    last_price_x_cumulative: 0,
 	    last_price_y_cumulative: 0,
+	    epoch_samples: 0,
+	    epoch_twap_x: 0,
+	    epoch_twap_y: 0,
 	    lp_mint_cap,
 	    lp_burn_cap,
 	    x_scale,
@@ -619,7 +643,8 @@ Returns LP coins: <code>Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_mint">mint</a>&lt;X, Y, Curve&gt;(coin_x: Coin&lt;X&gt;, coin_y: Coin&lt;Y&gt;): Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;&gt;
-<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a> {
+	<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>, <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a>
+{
 	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
 	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
 
@@ -654,6 +679,16 @@ Returns LP coins: <code>Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP
 
 	<a href="liquidity_pool.md#0x1_liquidity_pool_update_oracle">update_oracle</a>&lt;X, Y, Curve&gt;(pool, x_reserve_size, y_reserve_size);
 
+	<b>let</b> lp_events = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+	    &<b>mut</b> lp_events.liquidity_added_events,
+	    <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityAddedEvent">LiquidityAddedEvent</a>&lt;X, Y, Curve&gt; {
+		added_x_val: x_provided_val,
+		added_y_val: y_provided_val,
+		lp_tokens_received: provided_liq
+	    }
+	);
+
 	lp_coins
 }
 </code></pre>
@@ -679,7 +714,7 @@ Burn liquidity coins (LP) and get back X and Y from its reserves. Permissionless
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_burn">burn</a>&lt;X, Y, Curve&gt;(lp_coins: Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;&gt;): (Coin&lt;X&gt;, Coin&lt;Y&gt;)
-<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a> {
+<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>, <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a> {
 	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
 	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
 
@@ -703,6 +738,15 @@ Burn liquidity coins (LP) and get back X and Y from its reserves. Permissionless
 	<a href="liquidity_pool.md#0x1_liquidity_pool_update_oracle">update_oracle</a>&lt;X, Y, Curve&gt;(pool, x_reserve_val, y_reserve_val);
 	<a href="coin.md#0x1_coin_burn">coin::burn</a>(lp_coins, &pool.lp_burn_cap);
 
+	<b>let</b> lp_events = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+	    &<b>mut</b> lp_events.liquidity_removed_events,
+	    <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityRemovedEvent">LiquidityRemovedEvent</a>&lt;X, Y, Curve&gt; {
+		returned_x_val: x_to_return_val,
+		returned_y_val: y_to_return_val,
+		lp_tokens_burned: burned_lp_coins_val,
+	    });
+	
 	(x_coin_to_return, y_coin_to_return)
 }
 </code></pre>
@@ -732,7 +776,7 @@ Swap coins (may swap both x and y at the same time). Permissionless.
 	x_out: u64,
 	y_in: Coin&lt;Y&gt;,
 	y_out: u64
-): (Coin&lt;X&gt;, Coin&lt;Y&gt;) <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a> {
+): (Coin&lt;X&gt;, Coin&lt;Y&gt;) <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>, <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a> {
 	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
 	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
 
@@ -765,6 +809,16 @@ Swap coins (may swap both x and y at the same time). Permissionless.
 
 	<a href="liquidity_pool.md#0x1_liquidity_pool_update_oracle">update_oracle</a>&lt;X, Y, Curve&gt;(pool, x_reserve_size, y_reserve_size);
 
+	<b>let</b> lp_events = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+	    &<b>mut</b> lp_events.swap_events,
+	    <a href="liquidity_pool.md#0x1_liquidity_pool_SwapEvent">SwapEvent</a>&lt;X, Y, Curve&gt; {
+		x_in: x_in_val,
+		y_in: y_in_val,
+		x_out,
+		y_out,
+	    });
+
 	(x_swapped, y_swapped)
 }
 </code></pre>
@@ -793,16 +847,53 @@ Update the cumulative prices (decentralised price oracle).
 	pool: &<b>mut</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;,
 	x_reserve: u64,
 	y_reserve: u64
-) {
+) <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a> {
+	<b>let</b> last_epoch_timestamp = <a href="reconfiguration.md#0x1_reconfiguration_last_reconfiguration_time">reconfiguration::last_reconfiguration_time</a>();
+	<b>if</b> (last_epoch_timestamp &gt; pool.last_epoch_timestamp) {
+	    // Reset the number of time samples taken <b>to</b> 0.
+	    pool.epoch_samples = 0;
+	    // Set the pools last epoch <a href="timestamp.md#0x1_timestamp">timestamp</a> <b>to</b> the new epoch.
+	    pool.last_epoch_timestamp = last_epoch_timestamp;
+	};
+
 	<b>let</b> last_block_timestamp = pool.last_block_timestamp;
 	<b>let</b> block_timestamp = <a href="timestamp.md#0x1_timestamp_now_seconds">timestamp::now_seconds</a>();
 	<b>let</b> time_elapsed = ((block_timestamp - last_block_timestamp) <b>as</b> u128);
 	<b>if</b> (time_elapsed &gt; 0 && x_reserve != 0 && y_reserve != 0) {
-	    <b>let</b> last_price_x_cumulative = <a href="../../std/doc/uq64x64.md#0x1_uq64x64_to_u128">uq64x64::to_u128</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction">uq64x64::fraction</a>(y_reserve, x_reserve)) * time_elapsed;
-	    <b>let</b> last_price_y_cumulative = <a href="../../std/doc/uq64x64.md#0x1_uq64x64_to_u128">uq64x64::to_u128</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction">uq64x64::fraction</a>(x_reserve, y_reserve)) * time_elapsed;
+	    // If the number of epoch samples is 0, then the pools last cumulative price is reset <b>to</b> 0.
+	    // Note that this is done after checking that a new sample can be taken since otherwise the
+	    // last cumulative price will be 0 until a next successful oracle <b>update</b> is initiated.
+	    // This also makes it less likely that there will be a price overflow when computing the
+	    // cumulative price.
+	    <b>if</b> (pool.epoch_samples == 0) {
+		pool.last_price_x_cumulative = 0;
+		pool.last_price_y_cumulative = 0;
+	    };
 
-	    pool.last_price_x_cumulative = <a href="../../std/doc/math128.md#0x1_math128_overflow_add">math128::overflow_add</a>(pool.last_price_x_cumulative, last_price_x_cumulative);
-	    pool.last_price_y_cumulative = <a href="../../std/doc/math128.md#0x1_math128_overflow_add">math128::overflow_add</a>(pool.last_price_y_cumulative, last_price_y_cumulative);
+	    <b>let</b> last_price_x_cumulative =
+		<a href="../../std/doc/uq64x64.md#0x1_uq64x64_to_u128">uq64x64::to_u128</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction">uq64x64::fraction</a>(y_reserve, x_reserve)) * time_elapsed;
+	    <b>let</b> last_price_y_cumulative =
+		<a href="../../std/doc/uq64x64.md#0x1_uq64x64_to_u128">uq64x64::to_u128</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction">uq64x64::fraction</a>(x_reserve, y_reserve)) * time_elapsed;
+
+	    pool.last_price_x_cumulative =
+		<a href="../../std/doc/math128.md#0x1_math128_overflow_add">math128::overflow_add</a>(pool.last_price_x_cumulative, last_price_x_cumulative);
+	    pool.last_price_y_cumulative =
+		<a href="../../std/doc/math128.md#0x1_math128_overflow_add">math128::overflow_add</a>(pool.last_price_y_cumulative, last_price_y_cumulative);
+
+	    pool.epoch_samples = pool.epoch_samples + 1;
+	    pool.epoch_twap_x = pool.last_price_x_cumulative / pool.epoch_samples;
+	    pool.epoch_twap_y =	pool.last_price_y_cumulative / pool.epoch_samples;
+
+	    <b>let</b> lp_events = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	    <a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+		&<b>mut</b> lp_events.oracle_update_events,
+		<a href="liquidity_pool.md#0x1_liquidity_pool_OracleUpdateEvent">OracleUpdateEvent</a>&lt;X, Y, Curve&gt; {
+		    last_price_x_cumulative: pool.last_price_x_cumulative,
+		    last_price_y_cumulative: pool.last_price_y_cumulative,
+		    epoch_samples: pool.epoch_samples,
+		    epoch_twap_x: pool.epoch_twap_x,
+		    epoch_twap_y: pool.epoch_twap_y,
+		});
 	};
 	pool.last_block_timestamp = block_timestamp;
 }
@@ -851,6 +942,74 @@ Update the cumulative prices (decentralised price oracle).
 	} <b>else</b> {
 	    <b>abort</b> <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_CURVE">EINVALID_CURVE</a>
 	};
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_liquidity_pool_get_cumulative_prices"></a>
+
+## Function `get_cumulative_prices`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_cumulative_prices">get_cumulative_prices</a>&lt;X, Y, Curve&gt;(): (u128, u128, u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_cumulative_prices">get_cumulative_prices</a>&lt;X, Y, Curve&gt;(): (u128, u128, u64)
+	<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>
+{
+	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
+	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
+
+	<b>let</b> <a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a> = <b>borrow_global</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	<b>let</b> last_price_x_cumulative = *&<a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.last_price_x_cumulative;
+	<b>let</b> last_price_y_cumulative = *&<a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.last_price_y_cumulative;
+	<b>let</b> last_block_timestamp = <a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.last_block_timestamp;
+
+	(last_price_x_cumulative, last_price_y_cumulative, last_block_timestamp)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_liquidity_pool_get_epoch_twap"></a>
+
+## Function `get_epoch_twap`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_epoch_twap">get_epoch_twap</a>&lt;X, Y, Curve&gt;(): (u128, u128, u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_epoch_twap">get_epoch_twap</a>&lt;X, Y, Curve&gt;(): (u128, u128, u64)
+	<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>
+{
+	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
+	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
+
+	<b>let</b> <a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a> = <b>borrow_global</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	<b>let</b> epoch_twap_x = *&<a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.epoch_twap_x;
+	<b>let</b> epoch_twap_y = *&<a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.epoch_twap_y;
+	<b>let</b> last_epoch_timestamp = <a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.last_block_timestamp;
+
+	(epoch_twap_x, epoch_twap_y, last_epoch_timestamp)
 }
 </code></pre>
 

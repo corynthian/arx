@@ -92,7 +92,8 @@ Conversion factor between seconds and microseconds
 
 ## Function `set_time_has_started`
 
-Marks that time has started. This can only be called from genesis and with the ol framework account.
+Marks that time has started. This can only be called from genesis and with the arx framework
+account.
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="timestamp.md#0x1_timestamp_set_time_has_started">set_time_has_started</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
@@ -119,7 +120,8 @@ Marks that time has started. This can only be called from genesis and with the o
 
 ## Function `update_global_time`
 
-Updates the wall clock time by consensus. Requires VM privilege and will be invoked during block prologue.
+Updates the wall clock time by consensus. Requires VM privilege and will be invoked during block
+prologue.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="timestamp.md#0x1_timestamp_update_global_time">update_global_time</a>(<a href="account.md#0x1_account">account</a>: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, proposer: <b>address</b>, <a href="timestamp.md#0x1_timestamp">timestamp</a>: u64)

@@ -140,9 +140,9 @@
 
 ## Resource `OwnerCapability`
 
-Capability that represents ownership and can be used to control the validator and the associated
-tower. Having this be separate from the signer for the account that the validator resources
-are hosted at allows modules to have control over a validator.
+Capability that represents ownership and can be used to control the validator. Having this be
+separate from the signer for the account that the validator resources are hosted at allows
+modules to have control over a validator.
 
 
 <pre><code><b>struct</b> <a href="validator.md#0x1_validator_OwnerCapability">OwnerCapability</a> <b>has</b> store, key
@@ -3501,46 +3501,6 @@ Returns validator's next epoch voting power, including pending_active, active, a
 
 
 
-
-<a name="0x1_validator_spec_rewards_amount"></a>
-
-
-<pre><code><b>fun</b> <a href="validator.md#0x1_validator_spec_rewards_amount">spec_rewards_amount</a>(
-   stake_amount: u64,
-   num_successful_proposals: u64,
-   num_total_proposals: u64,
-   rewards_rate: u64,
-   rewards_rate_denominator: u64,
-): u64;
-</code></pre>
-
-
-
-
-<a name="0x1_validator_spec_contains"></a>
-
-
-<pre><code><b>fun</b> <a href="validator.md#0x1_validator_spec_contains">spec_contains</a>(validators: <a href="../../std/doc/vector.md#0x1_vector">vector</a>&lt;<a href="validator.md#0x1_validator_ValidatorInfo">ValidatorInfo</a>&gt;, addr: <b>address</b>): bool {
-   <b>exists</b> i in 0..len(validators): validators[i].<b>address</b> == addr
-}
-</code></pre>
-
-
-
-
-<a name="0x1_validator_spec_is_current_epoch_validator"></a>
-
-
-<pre><code><b>fun</b> <a href="validator.md#0x1_validator_spec_is_current_epoch_validator">spec_is_current_epoch_validator</a>(lock_address: <b>address</b>): bool {
-   <b>let</b> validator_set = <b>global</b>&lt;<a href="validator.md#0x1_validator_ValidatorSet">ValidatorSet</a>&gt;(@arx);
-   !<a href="validator.md#0x1_validator_spec_contains">spec_contains</a>(validator_set.pending_active, lock_address)
-       && (<a href="validator.md#0x1_validator_spec_contains">spec_contains</a>(validator_set.active_validators, lock_address)
-       || <a href="validator.md#0x1_validator_spec_contains">spec_contains</a>(validator_set.pending_inactive, lock_address))
-}
-</code></pre>
-
-
-
 <a name="@Specification_1_get_validator_state"></a>
 
 ### Function `get_validator_state`
@@ -4126,6 +4086,62 @@ Returns validator's next epoch voting power, including pending_active, active, a
 
 <pre><code><b>fun</b> <a href="validator.md#0x1_validator_spec_has_validator_config">spec_has_validator_config</a>(a: <b>address</b>): bool {
    <b>exists</b>&lt;<a href="validator.md#0x1_validator_ValidatorConfig">ValidatorConfig</a>&gt;(a)
+}
+</code></pre>
+
+
+
+
+<a name="0x1_validator_spec_rewards_amount"></a>
+
+
+<pre><code><b>fun</b> <a href="validator.md#0x1_validator_spec_rewards_amount">spec_rewards_amount</a>(
+   stake_amount: u64,
+   num_successful_proposals: u64,
+   num_total_proposals: u64,
+   rewards_rate: u64,
+   rewards_rate_denominator: u64,
+): u64;
+</code></pre>
+
+
+
+
+<a name="0x1_validator_spec_contains"></a>
+
+
+<pre><code><b>fun</b> <a href="validator.md#0x1_validator_spec_contains">spec_contains</a>(validators: <a href="../../std/doc/vector.md#0x1_vector">vector</a>&lt;<a href="validator.md#0x1_validator_ValidatorInfo">ValidatorInfo</a>&gt;, addr: <b>address</b>): bool {
+   <b>exists</b> i in 0..len(validators): validators[i].<b>address</b> == addr
+}
+</code></pre>
+
+
+
+
+<a name="0x1_validator_spec_is_current_epoch_validator"></a>
+
+
+<pre><code><b>fun</b> <a href="validator.md#0x1_validator_spec_is_current_epoch_validator">spec_is_current_epoch_validator</a>(lock_address: <b>address</b>): bool {
+   <b>let</b> validator_set = <b>global</b>&lt;<a href="validator.md#0x1_validator_ValidatorSet">ValidatorSet</a>&gt;(@arx);
+   !<a href="validator.md#0x1_validator_spec_contains">spec_contains</a>(validator_set.pending_active, lock_address)
+       && (<a href="validator.md#0x1_validator_spec_contains">spec_contains</a>(validator_set.active_validators, lock_address)
+       || <a href="validator.md#0x1_validator_spec_contains">spec_contains</a>(validator_set.pending_inactive, lock_address))
+}
+</code></pre>
+
+
+
+
+<a name="0x1_validator_ResourceRequirement"></a>
+
+
+<pre><code><b>schema</b> <a href="validator.md#0x1_validator_ResourceRequirement">ResourceRequirement</a> {
+    <b>requires</b> <b>exists</b>&lt;<a href="validator.md#0x1_validator_ArxCoinCapabilities">ArxCoinCapabilities</a>&gt;(@arx);
+    <b>requires</b> <b>exists</b>&lt;<a href="validator.md#0x1_validator_ValidatorPerformance">ValidatorPerformance</a>&gt;(@arx);
+    <b>requires</b> <b>exists</b>&lt;<a href="validator.md#0x1_validator_ValidatorSet">ValidatorSet</a>&gt;(@arx);
+    <b>requires</b> <b>exists</b>&lt;ValidationConfig&gt;(@arx);
+    <b>requires</b> <b>exists</b>&lt;<a href="timestamp.md#0x1_timestamp_CurrentTimeMicroseconds">timestamp::CurrentTimeMicroseconds</a>&gt;(@arx);
+    <b>requires</b> <b>exists</b>&lt;<a href="validator.md#0x1_validator_ValidatorFees">ValidatorFees</a>&gt;(@arx);
 }
 </code></pre>
 

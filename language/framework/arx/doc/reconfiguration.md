@@ -48,9 +48,8 @@ to synchronize configuration changes for the validators.
 
 ## Struct `NewEpochEvent`
 
-Event that signals consensus to start a new epoch,
-with new configuration information. This is also called a
-"reconfiguration event"
+Event that signals consensus to start a new epoch with new configuration information. This is
+also called a "reconfiguration event".
 
 
 <pre><code><b>struct</b> <a href="reconfiguration.md#0x1_reconfiguration_NewEpochEvent">NewEpochEvent</a> <b>has</b> drop, store
@@ -101,7 +100,7 @@ Holds information about state of reconfiguration
 <code>last_reconfiguration_time: u64</code>
 </dt>
 <dd>
- Time of last reconfiguration. Only changes on reconfiguration events.
+ Time of last reconfiguration. Only changes on <code><a href="reconfiguration.md#0x1_reconfiguration_NewEpochEvent">NewEpochEvent</a></code>s.
 </dd>
 <dt>
 <code>events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="reconfiguration.md#0x1_reconfiguration_NewEpochEvent">reconfiguration::NewEpochEvent</a>&gt;</code>
@@ -220,7 +219,10 @@ single time in Genesis.
     <a href="system_addresses.md#0x1_system_addresses_assert_arx">system_addresses::assert_arx</a>(arx);
 
     // <b>assert</b> it matches `new_epoch_event_key()`, otherwise the <a href="event.md#0x1_event">event</a> can't be recognized
-    <b>assert</b>!(<a href="account.md#0x1_account_get_guid_next_creation_num">account::get_guid_next_creation_num</a>(<a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(arx)) == 2, <a href="../../std/doc/error.md#0x1_error_invalid_state">error::invalid_state</a>(<a href="reconfiguration.md#0x1_reconfiguration_EINVALID_GUID_FOR_EVENT">EINVALID_GUID_FOR_EVENT</a>));
+    <b>assert</b>!(
+	    <a href="account.md#0x1_account_get_guid_next_creation_num">account::get_guid_next_creation_num</a>(<a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(arx)) == 2,
+	    <a href="../../std/doc/error.md#0x1_error_invalid_state">error::invalid_state</a>(<a href="reconfiguration.md#0x1_reconfiguration_EINVALID_GUID_FOR_EVENT">EINVALID_GUID_FOR_EVENT</a>),
+	);
     <b>move_to</b>&lt;<a href="reconfiguration.md#0x1_reconfiguration_Configuration">Configuration</a>&gt;(
         arx,
         <a href="reconfiguration.md#0x1_reconfiguration_Configuration">Configuration</a> {
@@ -241,7 +243,8 @@ single time in Genesis.
 ## Function `disable_reconfiguration`
 
 Private function to temporarily halt reconfiguration.
-This function should only be used for offline WriteSet generation purpose and should never be invoked on chain.
+This function should only be used for offline WriteSet generation purpose and should never be
+invoked on chain.
 
 
 <pre><code><b>fun</b> <a href="reconfiguration.md#0x1_reconfiguration_disable_reconfiguration">disable_reconfiguration</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
@@ -269,7 +272,8 @@ This function should only be used for offline WriteSet generation purpose and sh
 ## Function `enable_reconfiguration`
 
 Private function to resume reconfiguration.
-This function should only be used for offline WriteSet generation purpose and should never be invoked on chain.
+This function should only be used for offline WriteSet generation purpose and should never be
+invoked on chain.
 
 
 <pre><code><b>fun</b> <a href="reconfiguration.md#0x1_reconfiguration_enable_reconfiguration">enable_reconfiguration</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
@@ -378,7 +382,10 @@ Signal validators to start using new configuration. Must be called from friend c
 
     <a href="storage_gas.md#0x1_storage_gas_on_reconfig">storage_gas::on_reconfig</a>();
 
-    <b>assert</b>!(current_time &gt; config_ref.last_reconfiguration_time, <a href="../../std/doc/error.md#0x1_error_invalid_state">error::invalid_state</a>(<a href="reconfiguration.md#0x1_reconfiguration_EINVALID_BLOCK_TIME">EINVALID_BLOCK_TIME</a>));
+    <b>assert</b>!(
+	    current_time &gt; config_ref.last_reconfiguration_time,
+	    <a href="../../std/doc/error.md#0x1_error_invalid_state">error::invalid_state</a>(<a href="reconfiguration.md#0x1_reconfiguration_EINVALID_BLOCK_TIME">EINVALID_BLOCK_TIME</a>)
+	);
     config_ref.last_reconfiguration_time = current_time;
     <b>spec</b> {
         <b>assume</b> config_ref.epoch + 1 &lt;= MAX_U64;
@@ -450,8 +457,8 @@ Signal validators to start using new configuration. Must be called from friend c
 
 ## Function `emit_genesis_reconfiguration_event`
 
-Emit a <code><a href="reconfiguration.md#0x1_reconfiguration_NewEpochEvent">NewEpochEvent</a></code> event. This function will be invoked by genesis directly to generate the very first
-reconfiguration event.
+Emit a <code><a href="reconfiguration.md#0x1_reconfiguration_NewEpochEvent">NewEpochEvent</a></code> event. This function will be invoked by genesis directly to generate the
+very first reconfiguration event.
 
 
 <pre><code><b>fun</b> <a href="reconfiguration.md#0x1_reconfiguration_emit_genesis_reconfiguration_event">emit_genesis_reconfiguration_event</a>()

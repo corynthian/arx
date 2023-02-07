@@ -82,7 +82,7 @@ default-members = [
     "crates/arx-rate-limiter",
     "language/framework",
     "execution/db-bootstrapper",
-    "storage/backup/backup-cli",
+    "storage/backup/backup-cli"
 ]
 
 # All workspace members should inherit these keys
