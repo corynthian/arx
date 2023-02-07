@@ -248,8 +248,39 @@ pub enum EntryFunctionCall {
         should_pass: bool,
     },
 
-    /// Initializes the genesis liquidity pool state.
-    LiquidityPoolInitialize {},
+    /// Only callable in tests and testnets where the core resources account exists.
+    /// Claim the delegated mint capability and destroy the delegated token.
+    LuxCoinClaimMintCapability {},
+
+    /// Only callable in tests and testnets where the core resources account exists.
+    /// Create delegated token for the address so the account could claim MintCapability later.
+    LuxCoinDelegateMintCapability {
+        to: AccountAddress,
+    },
+
+    /// Only callable in tests and testnets where the core resources account exists.
+    /// Create new coins and deposit them into dst_addr's account.
+    LuxCoinMint {
+        dst_addr: AccountAddress,
+        amount: u64,
+    },
+
+    /// Only callable in tests and testnets where the core resources account exists.
+    /// Claim the delegated mint capability and destroy the delegated token.
+    NoxCoinClaimMintCapability {},
+
+    /// Only callable in tests and testnets where the core resources account exists.
+    /// Create delegated token for the address so the account could claim MintCapability later.
+    NoxCoinDelegateMintCapability {
+        to: AccountAddress,
+    },
+
+    /// Only callable in tests and testnets where the core resources account exists.
+    /// Create new coins and deposit them into dst_addr's account.
+    NoxCoinMint {
+        dst_addr: AccountAddress,
+        amount: u64,
+    },
 
     /// Entry function that can be used to transfer, if allow_ungated_transfer is set true.
     ObjectTransferCall {
@@ -282,6 +313,47 @@ pub enum EntryFunctionCall {
         seed: Vec<u8>,
         metadata_serialized: Vec<u8>,
         code: Vec<Vec<u8>>,
+    },
+
+    /// Add forma coins to an existing solaris. External.
+    SolarisAddCoins {
+        coin_type: TypeTag,
+        amount: u64,
+    },
+
+    /// Initialises a new solaris assigned to the provided owner.
+    SolarisInitializeOwner {
+        coin_type: TypeTag,
+    },
+
+    /// Reactivate forma coins pending unlock.
+    SolarisReactivateCoins {
+        coin_type: TypeTag,
+        amount: u64,
+    },
+
+    /// Remove forma coins from an existing solaris. External.
+    SolarisRemoveCoins {
+        coin_type: TypeTag,
+        amount: u64,
+    },
+
+    /// Withdraw unlocked coins from an existing solaris. External.
+    SolarisWithdrawCoins {
+        coin_type: TypeTag,
+        amount: u64,
+    },
+
+    /// Join the subsidialis with a pre-existing solaris of designated coin type.
+    /// It is necessary to join the subsidialis in order to receive seignorage rewards.
+    SubsidialisJoin {
+        coin_type: TypeTag,
+    },
+
+    /// Leave the subsidialis with a pre-existing solaris of designated coin type.
+    /// It is necessary to leave the subsidialis in order for removed forma coins to become unlocked.
+    SubsidialisLeave {
+        coin_type: TypeTag,
     },
 
     /// Similar to increase_lockup_with_cap but will use ownership capability from the signing account.
@@ -496,7 +568,12 @@ impl EntryFunctionCall {
                 proposal_id,
                 should_pass,
             } => governance_vote(stake_pool, proposal_id, should_pass),
-            LiquidityPoolInitialize {} => liquidity_pool_initialize(),
+            LuxCoinClaimMintCapability {} => lux_coin_claim_mint_capability(),
+            LuxCoinDelegateMintCapability { to } => lux_coin_delegate_mint_capability(to),
+            LuxCoinMint { dst_addr, amount } => lux_coin_mint(dst_addr, amount),
+            NoxCoinClaimMintCapability {} => nox_coin_claim_mint_capability(),
+            NoxCoinDelegateMintCapability { to } => nox_coin_delegate_mint_capability(to),
+            NoxCoinMint { dst_addr, amount } => nox_coin_mint(dst_addr, amount),
             ObjectTransferCall { object_id, to } => object_transfer_call(object_id, to),
             ResourceAccountCreateResourceAccount {
                 seed,
@@ -520,6 +597,15 @@ impl EntryFunctionCall {
                 metadata_serialized,
                 code,
             ),
+            SolarisAddCoins { coin_type, amount } => solaris_add_coins(coin_type, amount),
+            SolarisInitializeOwner { coin_type } => solaris_initialize_owner(coin_type),
+            SolarisReactivateCoins { coin_type, amount } => {
+                solaris_reactivate_coins(coin_type, amount)
+            },
+            SolarisRemoveCoins { coin_type, amount } => solaris_remove_coins(coin_type, amount),
+            SolarisWithdrawCoins { coin_type, amount } => solaris_withdraw_coins(coin_type, amount),
+            SubsidialisJoin { coin_type } => subsidialis_join(coin_type),
+            SubsidialisLeave { coin_type } => subsidialis_leave(coin_type),
             ValidatorIncreaseLockup {} => validator_increase_lockup(),
             ValidatorInitializeStakeOwner {
                 initial_stake_amount,
@@ -1143,19 +1229,111 @@ pub fn governance_vote(
     ))
 }
 
-/// Initializes the genesis liquidity pool state.
-pub fn liquidity_pool_initialize() -> TransactionPayload {
+/// Only callable in tests and testnets where the core resources account exists.
+/// Claim the delegated mint capability and destroy the delegated token.
+pub fn lux_coin_claim_mint_capability() -> TransactionPayload {
     TransactionPayload::EntryFunction(EntryFunction::new(
         ModuleId::new(
             AccountAddress::new([
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 1,
             ]),
-            ident_str!("liquidity_pool").to_owned(),
+            ident_str!("lux_coin").to_owned(),
         ),
-        ident_str!("initialize").to_owned(),
+        ident_str!("claim_mint_capability").to_owned(),
         vec![],
         vec![],
+    ))
+}
+
+/// Only callable in tests and testnets where the core resources account exists.
+/// Create delegated token for the address so the account could claim MintCapability later.
+pub fn lux_coin_delegate_mint_capability(to: AccountAddress) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("lux_coin").to_owned(),
+        ),
+        ident_str!("delegate_mint_capability").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&to).unwrap()],
+    ))
+}
+
+/// Only callable in tests and testnets where the core resources account exists.
+/// Create new coins and deposit them into dst_addr's account.
+pub fn lux_coin_mint(dst_addr: AccountAddress, amount: u64) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("lux_coin").to_owned(),
+        ),
+        ident_str!("mint").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&dst_addr).unwrap(),
+            bcs::to_bytes(&amount).unwrap(),
+        ],
+    ))
+}
+
+/// Only callable in tests and testnets where the core resources account exists.
+/// Claim the delegated mint capability and destroy the delegated token.
+pub fn nox_coin_claim_mint_capability() -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("nox_coin").to_owned(),
+        ),
+        ident_str!("claim_mint_capability").to_owned(),
+        vec![],
+        vec![],
+    ))
+}
+
+/// Only callable in tests and testnets where the core resources account exists.
+/// Create delegated token for the address so the account could claim MintCapability later.
+pub fn nox_coin_delegate_mint_capability(to: AccountAddress) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("nox_coin").to_owned(),
+        ),
+        ident_str!("delegate_mint_capability").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&to).unwrap()],
+    ))
+}
+
+/// Only callable in tests and testnets where the core resources account exists.
+/// Create new coins and deposit them into dst_addr's account.
+pub fn nox_coin_mint(dst_addr: AccountAddress, amount: u64) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("nox_coin").to_owned(),
+        ),
+        ident_str!("mint").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&dst_addr).unwrap(),
+            bcs::to_bytes(&amount).unwrap(),
+        ],
     ))
 }
 
@@ -1252,6 +1430,120 @@ pub fn resource_account_create_resource_account_and_publish_package(
             bcs::to_bytes(&metadata_serialized).unwrap(),
             bcs::to_bytes(&code).unwrap(),
         ],
+    ))
+}
+
+/// Add forma coins to an existing solaris. External.
+pub fn solaris_add_coins(coin_type: TypeTag, amount: u64) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("solaris").to_owned(),
+        ),
+        ident_str!("add_coins").to_owned(),
+        vec![coin_type],
+        vec![bcs::to_bytes(&amount).unwrap()],
+    ))
+}
+
+/// Initialises a new solaris assigned to the provided owner.
+pub fn solaris_initialize_owner(coin_type: TypeTag) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("solaris").to_owned(),
+        ),
+        ident_str!("initialize_owner").to_owned(),
+        vec![coin_type],
+        vec![],
+    ))
+}
+
+/// Reactivate forma coins pending unlock.
+pub fn solaris_reactivate_coins(coin_type: TypeTag, amount: u64) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("solaris").to_owned(),
+        ),
+        ident_str!("reactivate_coins").to_owned(),
+        vec![coin_type],
+        vec![bcs::to_bytes(&amount).unwrap()],
+    ))
+}
+
+/// Remove forma coins from an existing solaris. External.
+pub fn solaris_remove_coins(coin_type: TypeTag, amount: u64) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("solaris").to_owned(),
+        ),
+        ident_str!("remove_coins").to_owned(),
+        vec![coin_type],
+        vec![bcs::to_bytes(&amount).unwrap()],
+    ))
+}
+
+/// Withdraw unlocked coins from an existing solaris. External.
+pub fn solaris_withdraw_coins(coin_type: TypeTag, amount: u64) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("solaris").to_owned(),
+        ),
+        ident_str!("withdraw_coins").to_owned(),
+        vec![coin_type],
+        vec![bcs::to_bytes(&amount).unwrap()],
+    ))
+}
+
+/// Join the subsidialis with a pre-existing solaris of designated coin type.
+/// It is necessary to join the subsidialis in order to receive seignorage rewards.
+pub fn subsidialis_join(coin_type: TypeTag) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("subsidialis").to_owned(),
+        ),
+        ident_str!("join").to_owned(),
+        vec![coin_type],
+        vec![],
+    ))
+}
+
+/// Leave the subsidialis with a pre-existing solaris of designated coin type.
+/// It is necessary to leave the subsidialis in order for removed forma coins to become unlocked.
+pub fn subsidialis_leave(coin_type: TypeTag) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("subsidialis").to_owned(),
+        ),
+        ident_str!("leave").to_owned(),
+        vec![coin_type],
+        vec![],
     ))
 }
 
@@ -1820,9 +2112,67 @@ mod decoder {
         }
     }
 
-    pub fn liquidity_pool_initialize(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+    pub fn lux_coin_claim_mint_capability(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(_script) = payload {
-            Some(EntryFunctionCall::LiquidityPoolInitialize {})
+            Some(EntryFunctionCall::LuxCoinClaimMintCapability {})
+        } else {
+            None
+        }
+    }
+
+    pub fn lux_coin_delegate_mint_capability(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::LuxCoinDelegateMintCapability {
+                to: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn lux_coin_mint(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::LuxCoinMint {
+                dst_addr: bcs::from_bytes(script.args().get(0)?).ok()?,
+                amount: bcs::from_bytes(script.args().get(1)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn nox_coin_claim_mint_capability(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(_script) = payload {
+            Some(EntryFunctionCall::NoxCoinClaimMintCapability {})
+        } else {
+            None
+        }
+    }
+
+    pub fn nox_coin_delegate_mint_capability(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::NoxCoinDelegateMintCapability {
+                to: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn nox_coin_mint(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::NoxCoinMint {
+                dst_addr: bcs::from_bytes(script.args().get(0)?).ok()?,
+                amount: bcs::from_bytes(script.args().get(1)?).ok()?,
+            })
         } else {
             None
         }
@@ -1879,6 +2229,80 @@ mod decoder {
                     code: bcs::from_bytes(script.args().get(2)?).ok()?,
                 },
             )
+        } else {
+            None
+        }
+    }
+
+    pub fn solaris_add_coins(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SolarisAddCoins {
+                coin_type: script.ty_args().get(0)?.clone(),
+                amount: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn solaris_initialize_owner(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SolarisInitializeOwner {
+                coin_type: script.ty_args().get(0)?.clone(),
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn solaris_reactivate_coins(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SolarisReactivateCoins {
+                coin_type: script.ty_args().get(0)?.clone(),
+                amount: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn solaris_remove_coins(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SolarisRemoveCoins {
+                coin_type: script.ty_args().get(0)?.clone(),
+                amount: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn solaris_withdraw_coins(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SolarisWithdrawCoins {
+                coin_type: script.ty_args().get(0)?.clone(),
+                amount: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn subsidialis_join(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SubsidialisJoin {
+                coin_type: script.ty_args().get(0)?.clone(),
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn subsidialis_leave(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SubsidialisLeave {
+                coin_type: script.ty_args().get(0)?.clone(),
+            })
         } else {
             None
         }
@@ -2151,8 +2575,28 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             Box::new(decoder::governance_vote),
         );
         map.insert(
-            "liquidity_pool_initialize".to_string(),
-            Box::new(decoder::liquidity_pool_initialize),
+            "lux_coin_claim_mint_capability".to_string(),
+            Box::new(decoder::lux_coin_claim_mint_capability),
+        );
+        map.insert(
+            "lux_coin_delegate_mint_capability".to_string(),
+            Box::new(decoder::lux_coin_delegate_mint_capability),
+        );
+        map.insert(
+            "lux_coin_mint".to_string(),
+            Box::new(decoder::lux_coin_mint),
+        );
+        map.insert(
+            "nox_coin_claim_mint_capability".to_string(),
+            Box::new(decoder::nox_coin_claim_mint_capability),
+        );
+        map.insert(
+            "nox_coin_delegate_mint_capability".to_string(),
+            Box::new(decoder::nox_coin_delegate_mint_capability),
+        );
+        map.insert(
+            "nox_coin_mint".to_string(),
+            Box::new(decoder::nox_coin_mint),
         );
         map.insert(
             "object_transfer_call".to_string(),
@@ -2169,6 +2613,34 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "resource_account_create_resource_account_and_publish_package".to_string(),
             Box::new(decoder::resource_account_create_resource_account_and_publish_package),
+        );
+        map.insert(
+            "solaris_add_coins".to_string(),
+            Box::new(decoder::solaris_add_coins),
+        );
+        map.insert(
+            "solaris_initialize_owner".to_string(),
+            Box::new(decoder::solaris_initialize_owner),
+        );
+        map.insert(
+            "solaris_reactivate_coins".to_string(),
+            Box::new(decoder::solaris_reactivate_coins),
+        );
+        map.insert(
+            "solaris_remove_coins".to_string(),
+            Box::new(decoder::solaris_remove_coins),
+        );
+        map.insert(
+            "solaris_withdraw_coins".to_string(),
+            Box::new(decoder::solaris_withdraw_coins),
+        );
+        map.insert(
+            "subsidialis_join".to_string(),
+            Box::new(decoder::subsidialis_join),
+        );
+        map.insert(
+            "subsidialis_leave".to_string(),
+            Box::new(decoder::subsidialis_leave),
         );
         map.insert(
             "validator_increase_lockup".to_string(),
