@@ -64,8 +64,8 @@ module arx::governance {
         signer_caps: SimpleMap<address, SignerCapability>,
     }
 
-    /// Configurations of the governance, set during Genesis and can be updated by the same process offered
-    /// by this governance module.
+    /// Configurations of the governance, set during Genesis and can be updated by the same process
+    /// offered by this governance module.
     struct GovernanceConfig has key {
         min_voting_threshold: u128,
         required_proposer_stake: u64,
@@ -83,7 +83,8 @@ module arx::governance {
     }
 
     /// Used to track which execution script hashes have been approved by governance.
-    /// This is required to bypass cases where the execution scripts exceed the size limit imposed by mempool.
+    /// This is required to bypass cases where the execution scripts exceed the size limit imposed by
+    /// mempool.
     struct ApprovedExecutionHashes has key {
         hashes: SimpleMap<u64, vector<u8>>,
     }
@@ -139,9 +140,8 @@ module arx::governance {
         simple_map::add(signer_caps, signer_address, signer_cap);
     }
 
-    /// Initializes the state for governance. Can only be called during Genesis with a signer
-    /// for the arx (0x1) account.
-    /// This function is private because it's called directly from the vm.
+    /// Initializes the state for governance. Can only be called during Genesis with a signer for the
+    /// arx (0x1) account. This function is private because it's called directly from the vm.
     fun initialize(
         arx: &signer,
         min_voting_threshold: u128,
@@ -169,8 +169,8 @@ module arx::governance {
         })
     }
 
-    /// Update the governance configurations. This can only be called as part of resolving a proposal in this same
-    /// governance.
+    /// Update the governance configurations. This can only be called as part of resolving a proposal in
+    /// this same governance.
     public fun update_governance_config(
         arx: &signer,
         min_voting_threshold: u128,
@@ -232,7 +232,10 @@ module arx::governance {
         is_multi_step_proposal: bool,
     ) acquires GovernanceConfig, GovernanceEvents {
         let proposer_address = signer::address_of(proposer);
-        //assert!(validator::get_delegated_voter(stake_pool) == proposer_address, error::invalid_argument(ENOT_DELEGATED_VOTER));
+        //assert!(
+	//  validator::get_delegated_voter(stake_pool) == proposer_address,
+	//  error::invalid_argument(ENOT_DELEGATED_VOTER)
+	//);
 
         // The proposer's stake needs to be at least the required bond amount.
         let governance_config = borrow_global<GovernanceConfig>(@arx);
@@ -433,9 +436,10 @@ module arx::governance {
         let allow_validator_set_change = validation_config::get_allow_validator_set_change(&validation_config::get());
         if (allow_validator_set_change) {
             let (active, _, pending_active, pending_inactive) = validator::get_stake(pool_address);
-            // We calculate the voting power as total non-inactive stakes of the pool. Even if the validator is not in the
-            // active validator set, as long as they have a lockup (separately checked in create_proposal and voting), their
-            // stake would still count in their voting power for governance proposals.
+            // We calculate the voting power as total non-inactive stakes of the pool. Even if the
+	    // validator is not in the active validator set, as long as they have a lockup (separately
+	    // checked in create_proposal and voting), their stake would still count in their voting
+	    // power for governance proposals.
             active + pending_active + pending_inactive
         } else {
             validator::get_current_epoch_voting_power(pool_address)
@@ -726,9 +730,9 @@ module arx::governance {
         let (burn_cap, mint_cap) = arx_coin::initialize_for_test(arx);
         // Spread stake among active and pending_inactive because both need to be accounted for when computing voting
         // power.
-        validator::create_stake_pool(proposer, coin::mint(50, &mint_cap), coin::mint(50, &mint_cap), 10000);
-        validator::create_stake_pool(yes_voter, coin::mint(10, &mint_cap), coin::mint(10, &mint_cap), 10000);
-        validator::create_stake_pool(no_voter, coin::mint(5, &mint_cap), coin::mint(5, &mint_cap), 10000);
+        validator::create_stake_lock(proposer, coin::mint(50, &mint_cap), coin::mint(50, &mint_cap), 10000);
+        validator::create_stake_lock(yes_voter, coin::mint(10, &mint_cap), coin::mint(10, &mint_cap), 10000);
+        validator::create_stake_lock(no_voter, coin::mint(5, &mint_cap), coin::mint(5, &mint_cap), 10000);
         coin::destroy_mint_cap<ArxCoin>(mint_cap);
         coin::destroy_burn_cap<ArxCoin>(burn_cap);
     }

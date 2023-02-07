@@ -270,7 +270,7 @@ module arx::validation_config {
     }
 
     #[test(arx = @arx)]
-    #[expected_failure(abort_code = 0x10004, location = arx::validator_config)]
+    #[expected_failure(abort_code = 0x10004, location = arx::validation_config)]
     public entry fun test_update_voting_power_increase_limit_to_more_than_upper_bound_should_fail(
         arx: signer
     ) acquires ValidationConfig {

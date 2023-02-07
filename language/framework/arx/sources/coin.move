@@ -14,6 +14,8 @@ module arx::coin {
     use arx::system_addresses;
 
     friend arx::arx_coin;
+    friend arx::lux_coin;
+    friend arx::nox_coin;
     friend arx::genesis;
     friend arx::transaction_fee;
 

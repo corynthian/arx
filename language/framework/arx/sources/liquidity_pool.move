@@ -14,6 +14,7 @@ module arx::liquidity_pool {
     use arx::coin::{Self, Coin};
     use arx::timestamp;
     use arx::system_addresses;
+    use arx::reconfiguration;
 
     // Error codes.
 
@@ -54,14 +55,31 @@ module arx::liquidity_pool {
 
     /// Liquidity pool with cumulative price aggregation.
     struct LiquidityPool<phantom X, phantom Y, phantom Curve> has key {
+	/// The amount of coin `X` held in reserves.
 	coin_x_reserve: Coin<X>,
+	/// The amount of coin `Y` held in reserves.
 	coin_y_reserve: Coin<Y>,
+	/// The timestamp of the last epoch where the oracle is updated.
+	last_epoch_timestamp: u64,
+	/// The timestamp of the last block where the oracle was updated.
 	last_block_timestamp: u64,
+	/// The last cumulative price in `X`.
 	last_price_x_cumulative: u128,
+	/// The last cumulative price in `Y`.
 	last_price_y_cumulative: u128,
+	/// The number of cumulative price samples taken across the last epoch.
+	epoch_samples: u128,
+	/// The time weighted average price in `X`.
+	epoch_twap_x: u128,
+	/// The time weighted average price in `Y`.
+	epoch_twap_y: u128,
+	/// The liquidity pools mint capability.
 	lp_mint_cap: coin::MintCapability<LP<X, Y, Curve>>,
+	/// The liquidity pools burn capability.
 	lp_burn_cap: coin::BurnCapability<LP<X, Y, Curve>>,
+	/// The scaling factor of coin `X`.
 	x_scale: u64,
+	/// The scaling factor of coin `Y`.
 	y_scale: u64,
     }
 
@@ -71,7 +89,7 @@ module arx::liquidity_pool {
 	liquidity_added_events: event::EventHandle<LiquidityAddedEvent<X, Y, Curve>>,
 	liquidity_removed_events: event::EventHandle<LiquidityRemovedEvent<X, Y, Curve>>,
 	swap_events: event::EventHandle<SwapEvent<X, Y, Curve>>,
-	oracle_update_events: event::EventHandle<OracleUpdatedEvent<X, Y, Curve>>,
+	oracle_update_events: event::EventHandle<OracleUpdateEvent<X, Y, Curve>>,
     }
 
     /// A new liquidity pool has been created.
@@ -100,19 +118,17 @@ module arx::liquidity_pool {
     }
 
     /// The cumulative price oracle was updated.
-    struct OracleUpdatedEvent<phantom X, phantom Y, phantom Curve> has drop, store {
+    struct OracleUpdateEvent<phantom X, phantom Y, phantom Curve> has drop, store {
         last_price_x_cumulative: u128,
         last_price_y_cumulative: u128,
+	epoch_samples: u128,
+	epoch_twap_x: u128,
+	epoch_twap_y: u128,
     }    
-
-    /// Initializes the genesis liquidity pool state.
-    public entry fun initialize(arx_account: &signer) {
-	system_addresses::assert_arx(arx_account);
-    }
 
     // Public functions.
 
-    /// Register a liquidity pool for pair `X:Y`. This function is only callable
+    /// Register a liquidity pool for pair `X:Y`. This function is only callable by the `arx` account.
     public fun register<X, Y, Curve>(arx_account: &signer) {
 	// Ensure only the arx account at genesis or subsequently governance can register a new pool.
 	system_addresses::assert_arx(arx_account);
@@ -152,9 +168,13 @@ module arx::liquidity_pool {
 	let pool = LiquidityPool<X, Y, Curve> {
 	    coin_x_reserve: coin::zero<X>(),
 	    coin_y_reserve: coin::zero<Y>(),
+	    last_epoch_timestamp: reconfiguration::last_reconfiguration_time(),
 	    last_block_timestamp: 0,
 	    last_price_x_cumulative: 0,
 	    last_price_y_cumulative: 0,
+	    epoch_samples: 0,
+	    epoch_twap_x: 0,
+	    epoch_twap_y: 0,
 	    lp_mint_cap,
 	    lp_burn_cap,
 	    x_scale,
@@ -181,7 +201,8 @@ module arx::liquidity_pool {
     /// * `coin_y` - coin Y to add to the liquidity reserves.
     /// Returns LP coins: `Coin<LP<X, Y, Curve>>`.
     public fun mint<X, Y, Curve>(coin_x: Coin<X>, coin_y: Coin<Y>): Coin<LP<X, Y, Curve>>
-    acquires LiquidityPool {
+	acquires LiquidityPool, LiquidityPoolEvents
+    {
 	assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
 	assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
 
@@ -216,12 +237,22 @@ module arx::liquidity_pool {
 
 	update_oracle<X, Y, Curve>(pool, x_reserve_size, y_reserve_size);
 
+	let lp_events = borrow_global_mut<LiquidityPoolEvents<X, Y, Curve>>(@arx);
+	event::emit_event(
+	    &mut lp_events.liquidity_added_events,
+	    LiquidityAddedEvent<X, Y, Curve> {
+		added_x_val: x_provided_val,
+		added_y_val: y_provided_val,
+		lp_tokens_received: provided_liq
+	    }
+	);
+
 	lp_coins
     }
 
     /// Burn liquidity coins (LP) and get back X and Y from its reserves. Permissionless.
     public fun burn<X, Y, Curve>(lp_coins: Coin<LP<X, Y, Curve>>): (Coin<X>, Coin<Y>)
-    acquires LiquidityPool {
+    acquires LiquidityPool, LiquidityPoolEvents {
 	assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
 	assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
 
@@ -245,6 +276,15 @@ module arx::liquidity_pool {
 	update_oracle<X, Y, Curve>(pool, x_reserve_val, y_reserve_val);
 	coin::burn(lp_coins, &pool.lp_burn_cap);
 
+	let lp_events = borrow_global_mut<LiquidityPoolEvents<X, Y, Curve>>(@arx);
+	event::emit_event(
+	    &mut lp_events.liquidity_removed_events,
+	    LiquidityRemovedEvent<X, Y, Curve> {
+		returned_x_val: x_to_return_val,
+		returned_y_val: y_to_return_val,
+		lp_tokens_burned: burned_lp_coins_val,
+	    });
+
 	(x_coin_to_return, y_coin_to_return)
     }
 
@@ -254,7 +294,7 @@ module arx::liquidity_pool {
 	x_out: u64,
 	y_in: Coin<Y>,
 	y_out: u64
-    ): (Coin<X>, Coin<Y>) acquires LiquidityPool {
+    ): (Coin<X>, Coin<Y>) acquires LiquidityPool, LiquidityPoolEvents {
 	assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
 	assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
 
@@ -287,6 +327,16 @@ module arx::liquidity_pool {
 
 	update_oracle<X, Y, Curve>(pool, x_reserve_size, y_reserve_size);
 
+	let lp_events = borrow_global_mut<LiquidityPoolEvents<X, Y, Curve>>(@arx);
+	event::emit_event(
+	    &mut lp_events.swap_events,
+	    SwapEvent<X, Y, Curve> {
+		x_in: x_in_val,
+		y_in: y_in_val,
+		x_out,
+		y_out,
+	    });
+
 	(x_swapped, y_swapped)
     }
 
@@ -297,16 +347,53 @@ module arx::liquidity_pool {
 	pool: &mut LiquidityPool<X, Y, Curve>,
 	x_reserve: u64,
 	y_reserve: u64
-    ) {
+    ) acquires LiquidityPoolEvents {
+	let last_epoch_timestamp = reconfiguration::last_reconfiguration_time();
+	if (last_epoch_timestamp > pool.last_epoch_timestamp) {
+	    // Reset the number of time samples taken to 0.
+	    pool.epoch_samples = 0;
+	    // Set the pools last epoch timestamp to the new epoch.
+	    pool.last_epoch_timestamp = last_epoch_timestamp;
+	};
+
 	let last_block_timestamp = pool.last_block_timestamp;
 	let block_timestamp = timestamp::now_seconds();
 	let time_elapsed = ((block_timestamp - last_block_timestamp) as u128);
 	if (time_elapsed > 0 && x_reserve != 0 && y_reserve != 0) {
-	    let last_price_x_cumulative = uq64x64::to_u128(uq64x64::fraction(y_reserve, x_reserve)) * time_elapsed;
-	    let last_price_y_cumulative = uq64x64::to_u128(uq64x64::fraction(x_reserve, y_reserve)) * time_elapsed;
+	    // If the number of epoch samples is 0, then the pools last cumulative price is reset to 0.
+	    // Note that this is done after checking that a new sample can be taken since otherwise the
+	    // last cumulative price will be 0 until a next successful oracle update is initiated.
+	    // This also makes it less likely that there will be a price overflow when computing the
+	    // cumulative price.
+	    if (pool.epoch_samples == 0) {
+		pool.last_price_x_cumulative = 0;
+		pool.last_price_y_cumulative = 0;
+	    };
 
-	    pool.last_price_x_cumulative = math128::overflow_add(pool.last_price_x_cumulative, last_price_x_cumulative);
-	    pool.last_price_y_cumulative = math128::overflow_add(pool.last_price_y_cumulative, last_price_y_cumulative);
+	    let last_price_x_cumulative =
+		uq64x64::to_u128(uq64x64::fraction(y_reserve, x_reserve)) * time_elapsed;
+	    let last_price_y_cumulative =
+		uq64x64::to_u128(uq64x64::fraction(x_reserve, y_reserve)) * time_elapsed;
+
+	    pool.last_price_x_cumulative =
+		math128::overflow_add(pool.last_price_x_cumulative, last_price_x_cumulative);
+	    pool.last_price_y_cumulative =
+		math128::overflow_add(pool.last_price_y_cumulative, last_price_y_cumulative);
+
+	    pool.epoch_samples = pool.epoch_samples + 1;
+	    pool.epoch_twap_x = pool.last_price_x_cumulative / pool.epoch_samples;
+	    pool.epoch_twap_y =	pool.last_price_y_cumulative / pool.epoch_samples;
+
+	    let lp_events = borrow_global_mut<LiquidityPoolEvents<X, Y, Curve>>(@arx);
+	    event::emit_event(
+		&mut lp_events.oracle_update_events,
+		OracleUpdateEvent<X, Y, Curve> {
+		    last_price_x_cumulative: pool.last_price_x_cumulative,
+		    last_price_y_cumulative: pool.last_price_y_cumulative,
+		    epoch_samples: pool.epoch_samples,
+		    epoch_twap_x: pool.epoch_twap_x,
+		    epoch_twap_y: pool.epoch_twap_y,
+		});
 	};
 	pool.last_block_timestamp = block_timestamp;
     }
@@ -337,4 +424,35 @@ module arx::liquidity_pool {
 	};
     }
 
+    // Getters
+
+    // Get the current cumulative prices of `X` and `Y`.
+    public fun get_cumulative_prices<X, Y, Curve>(): (u128, u128, u64)
+	acquires LiquidityPool
+    {
+	assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
+	assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
+
+	let liquidity_pool = borrow_global<LiquidityPool<X, Y, Curve>>(@arx);
+	let last_price_x_cumulative = *&liquidity_pool.last_price_x_cumulative;
+	let last_price_y_cumulative = *&liquidity_pool.last_price_y_cumulative;
+	let last_block_timestamp = liquidity_pool.last_block_timestamp;
+
+	(last_price_x_cumulative, last_price_y_cumulative, last_block_timestamp)
+    }
+
+    // Get the current epoch time weighted average prices of `X` and `Y`.
+    public fun get_epoch_twap<X, Y, Curve>(): (u128, u128, u64)
+	acquires LiquidityPool
+    {
+	assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
+	assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
+
+	let liquidity_pool = borrow_global<LiquidityPool<X, Y, Curve>>(@arx);
+	let epoch_twap_x = *&liquidity_pool.epoch_twap_x;
+	let epoch_twap_y = *&liquidity_pool.epoch_twap_y;
+	let last_epoch_timestamp = liquidity_pool.last_block_timestamp;
+
+	(epoch_twap_x, epoch_twap_y, last_epoch_timestamp)
+    }
 }
