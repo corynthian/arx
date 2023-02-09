@@ -67,7 +67,7 @@ module arx::lux_coin {
         coin::destroy_mint_cap(mint_cap);
     }
 
-    /// Can only be called during genesis for tests to grant mint capability to open libra and core
+    /// Can only be called during genesis for tests to grant mint capability to arx and core
     /// resources accounts.
     public(friend) fun configure_accounts_for_test(
         arx: &signer,

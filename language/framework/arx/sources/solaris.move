@@ -10,6 +10,7 @@ module arx::solaris {
     use std::signer;
     use std::error;
 
+    friend arx::genesis;
     friend arx::subsidialis;
 
     struct Solaris<phantom CoinType> has key {
@@ -48,7 +49,7 @@ module arx::solaris {
     const EEXISTING_SOLARIS: u64 = 2;
 
     /// Allows a module which creates solarii to 
-    public(friend) fun store_seignorage_cap(
+    public(friend) fun store_seignorage_caps(
 	arx: &signer,
 	lux_mint_cap: MintCapability<LuxCoin>,
 	lux_burn_cap: BurnCapability<LuxCoin>,

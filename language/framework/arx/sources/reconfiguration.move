@@ -53,7 +53,7 @@ module arx::reconfiguration {
     const EINVALID_GUID_FOR_EVENT: u64 = 5;
 
     /// Only called during genesis.
-    /// Publishes `Configuration` resource. Can only be invoked by the open libraaccount, and only a
+    /// Publishes `Configuration` resource. Can only be invoked by the arxaccount, and only a
     /// single time in Genesis.
     public(friend) fun initialize(arx: &signer) {
         system_addresses::assert_arx(arx);
