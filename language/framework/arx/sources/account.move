@@ -150,7 +150,7 @@ module arx::account {
     const ENO_CAPABILITY: u64 = 9;
     /// The caller does not have a valid rotation capability offer from the other account
     const EINVALID_ACCEPT_ROTATION_CAPABILITY: u64 = 10;
-    /// Address to create is not a valid reserved address for open libra
+    /// Address to create is not a valid reserved address for arx
     const ENO_VALID_OPEN_LIBRA_RESERVED_ADDRESS: u64 = 11;
     /// Specified scheme required to proceed with the smart contract operation - can only be
     /// ED25519_SCHEME(0) OR MULTI_ED25519_SCHEME(1)

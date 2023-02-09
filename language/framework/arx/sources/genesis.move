@@ -1,8 +1,7 @@
 module arx::genesis {
     use std::error;
-    // use std::fixed_point32;
     use std::vector;
-    // use std::simple_map;
+    //use std::curves::Stable;
 
     use arx::account;
     use arx::aggregator_factory;
@@ -15,15 +14,22 @@ module arx::genesis {
     use arx::consensus_config;
     use arx::create_signer::create_signer;
     use arx::gas_schedule;
+    //use arx::liquidity_pool;
+    use arx::lux_coin;
+    use arx::moneta;
+    use arx::nox_coin;
     use arx::reconfiguration;
     use arx::validator;
     use arx::validation_config;
+    use arx::solaris;
+    use arx::subsidialis;
     use arx::state_storage;
     use arx::storage_gas;
     use arx::timestamp;
     use arx::transaction_fee;
     use arx::transaction_validation;
     use arx::version;
+    use arx::xusd_coin; //::{Self, XUSD};
 
     const EDUPLICATE_ACCOUNT: u64 = 1;
     const EACCOUNT_DOES_NOT_EXIST: u64 = 2;
@@ -71,7 +77,7 @@ module arx::genesis {
         rewards_rate_denominator: u64,
         voting_power_increase_limit: u64,
     ) {
-        // Initialize the open libra account. This is the account where system resources and modules
+        // Initialize the arx account. This is the account where system resources and modules
 	// will be deployed to. This will be entirely managed by on-chain governance and no entities have the key or privileges
         // to use this account.
         let (arx, arx_signer_cap) = account::create_reserved_account(@arx);
@@ -133,23 +139,35 @@ module arx::genesis {
         transaction_fee::store_arx_coin_burn_cap(arx, burn_cap);
     }
 
-    // Genesis step 3: Initialize seignorage coins.
-    // fun initialize_seignorage_coins(arx: &signer) { }
-
     /// Only called for testnets and e2e tests.
     fun initialize_core_resources_and_arx_coin(
         arx: &signer,
         core_resources_auth_key: vector<u8>,
     ) {
-        let (burn_cap, mint_cap) = arx_coin::initialize(arx);
+	// Initialize coin capabilities.
+        let (arx_burn_cap, arx_mint_cap) = arx_coin::initialize(arx);
+	let (nox_burn_cap, nox_mint_cap) = nox_coin::initialize(arx);
+	let (lux_burn_cap, lux_mint_cap) = lux_coin::initialize(arx);
+	let (xusd_burn_cap, xusd_mint_cap) = xusd_coin::initialize(arx);
+	// TODO: Remove validator mint capability.
         // Give `validator` module MintCapability<ArxCoin> so it can mint rewards.
-        validator::store_arx_coin_mint_cap(arx, mint_cap);
-        // Give transaction_fee module BurnCapability<ArxCoin> so it can burn gas.
-        transaction_fee::store_arx_coin_burn_cap(arx, burn_cap);
+        validator::store_arx_coin_mint_cap(arx, arx_mint_cap);
+	// Give `moneta` module MintCapability<ArxCoin> so it can mint `ARX`.
+	moneta::store_arx_coin_mint_cap(arx, arx_mint_cap, arx_burn_cap);
+	// Give `moneta` module MintCapability<XUSD> so it can mint `XUSD` (testing only).
+	moneta::store_xusd_coin_mint_cap(arx, xusd_mint_cap, xusd_burn_cap);
+        // Give `transaction_fee` module BurnCapability<ArxCoin> so it can burn gas.
+        transaction_fee::store_arx_coin_burn_cap(arx, arx_burn_cap);
+	// Give `solaris` module seignorage capabilities.
+	solaris::store_seignorage_caps(arx, lux_mint_cap, lux_burn_cap, nox_mint_cap, nox_burn_cap);
 
         let core_resources = account::create_account(@core_resources);
         account::rotate_authentication_key_internal(&core_resources, core_resources_auth_key);
-        arx_coin::configure_accounts_for_test(arx, &core_resources, mint_cap);
+        arx_coin::configure_accounts_for_test(arx, &core_resources, arx_mint_cap);
+	xusd_coin::configure_accounts_for_test(arx, &core_resources, xusd_mint_cap);
+
+	subsidialis::initialize(arx);
+	moneta::initialize_for_testing(arx);
     }
 
     fun create_accounts(arx: &signer, accounts: vector<AccountMap>) {
@@ -200,12 +218,18 @@ module arx::genesis {
             i = i + 1;
         };
 
-        // Destroy open libras ability to mint coins now that we're done with setting up the initial
+        // Destroy arxs ability to mint coins now that we're done with setting up the initial
         // validators.
         arx_coin::destroy_mint_cap(arx);
 
-	// Transition to the next epoch
+	// Transition to the next validation epoch
         validator::on_new_epoch();
+
+	// Transition to the next moneta epoch
+	moneta::on_new_epoch();
+	// Transition to the next `ArxCoin` subsidialis epoch.
+	subsidialis::on_new_epoch<ArxCoin>();
+	// Transition to the next `LP<ArxCoin, XUSD>` subsidialis epoch.
     }
 
     /// Sets up the initial validator set for the network.

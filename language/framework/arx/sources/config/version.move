@@ -25,8 +25,8 @@ module arx::version {
         system_addresses::assert_arx(arx);
 
         move_to(arx, Version { major: initial_version });
-        // Give open libra account capability to call set version. This allows on chain governance to
-	// do it through control of the open libra account.
+        // Give arx account capability to call set version. This allows on chain governance to
+	// do it through control of the arx account.
         move_to(arx, SetVersionCapability {});
     }
 

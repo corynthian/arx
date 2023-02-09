@@ -161,7 +161,7 @@ module arx::coin {
     //
 
     /// Creates a new aggregatable coin with value overflowing on `limit`. Note that this function can
-    /// only be called by the open libra (0x1) account for now becuase of `create_aggregator`.
+    /// only be called by the arx (0x1) account for now becuase of `create_aggregator`.
     public(friend) fun initialize_aggregatable_coin<CoinType>(arx: &signer): AggregatableCoin<CoinType> {
         let aggregator = aggregator_factory::create_aggregator(arx, MAX_U64);
         AggregatableCoin<CoinType> {

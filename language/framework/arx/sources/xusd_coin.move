@@ -1,13 +1,13 @@
-/// This module defines a minimal and generic Coin and Balance.
-/// modified from https://github.com/move-language/move/tree/main/language/documentation/tutorial
-module arx::arx_coin {
+/// This module defines a generic XUSD coin to be used by the moneta on testnets. Must be removed and
+/// substituted for a real USD stablecoin once this has been decided.
+module arx::xusd_coin {
     use std::string;
     use std::error;
     use std::signer;
     use std::vector;
     use std::option::{Self, Option};
 
-    use arx::coin::{Self, BurnCapability, MintCapability};
+    use arx::coin::{Self, MintCapability, BurnCapability};
     use arx::system_addresses;
 
     friend arx::genesis;
@@ -22,10 +22,10 @@ module arx::arx_coin {
     /// Cannot find delegation of mint capability to this account
     const EDELEGATION_NOT_FOUND: u64 = 3;
 
-    struct ArxCoin has key {}
+    struct XUSDCoin has key {}
 
     struct MintCapStore has key {
-        mint_cap: MintCapability<ArxCoin>,
+        mint_cap: MintCapability<XUSDCoin>,
     }
 
     /// Delegation token created by delegator and can be claimed by the delegatee as MintCapability.
@@ -39,20 +39,20 @@ module arx::arx_coin {
     }
 
     /// Can only called during genesis to initialize the Arx coin.
-    public(friend) fun initialize(arx: &signer): (BurnCapability<ArxCoin>, MintCapability<ArxCoin>) {
+    public(friend) fun initialize(arx: &signer): (BurnCapability<XUSDCoin>, MintCapability<XUSDCoin>) {
         system_addresses::assert_arx(arx);
 
-        let (burn_cap, freeze_cap, mint_cap) = coin::initialize_with_parallelizable_supply<ArxCoin>(
+        let (burn_cap, freeze_cap, mint_cap) = coin::initialize<XUSDCoin>(
             arx,
-            string::utf8(b"ArxCoin"),
-            string::utf8(b"ARX"),
+            string::utf8(b"XUSDCoin"),
+            string::utf8(b"XUSDCoin"),
             8, /* decimals */
             true, /* monitor_supply */
         );
 
         // Arx framework needs mint cap to mint coins to initial validators. This will be revoked once
 	// the validators have been initialized.
-        move_to(arx, MintCapStore { mint_cap });
+        // move_to(arx, MintCapStore { mint_cap });
 
         coin::destroy_freeze_cap(freeze_cap);
         (burn_cap, mint_cap)
@@ -70,22 +70,22 @@ module arx::arx_coin {
         coin::destroy_mint_cap(mint_cap);
     }
 
-    /// Can only be called during genesis for tests to grant mint capability to arx and core resources
-    /// accounts.
+    /// Can only be called during genesis for tests to grant mint capability to arx and core
+    /// resources accounts.
     public(friend) fun configure_accounts_for_test(
         arx: &signer,
         core_resources: &signer,
-        mint_cap: MintCapability<ArxCoin>,
+        mint_cap: MintCapability<XUSDCoin>,
     ) {
         system_addresses::assert_arx(arx);
 
-        // Mint the core resource account ArxCoin for gas so it can execute system transactions.
-        coin::register<ArxCoin>(core_resources);
-        let coins = coin::mint<ArxCoin>(
+        // Mint the core resource account XUSDCoin for gas so it can execute system transactions.
+        coin::register<XUSDCoin>(core_resources);
+        let coins = coin::mint<XUSDCoin>(
             18446744073709551615,
             &mint_cap,
         );
-        coin::deposit<ArxCoin>(signer::address_of(core_resources), coins);
+        coin::deposit<XUSDCoin>(signer::address_of(core_resources), coins);
 
         move_to(core_resources, MintCapStore { mint_cap });
         move_to(core_resources, Delegations { inner: vector::empty() });
@@ -106,8 +106,8 @@ module arx::arx_coin {
         );
 
         let mint_cap = &borrow_global<MintCapStore>(account_addr).mint_cap;
-        let coins_minted = coin::mint<ArxCoin>(amount, mint_cap);
-        coin::deposit<ArxCoin>(dst_addr, coins_minted);
+        let coins_minted = coin::mint<XUSDCoin>(amount, mint_cap);
+        coin::deposit<XUSDCoin>(dst_addr, coins_minted);
     }
 
     /// Only callable in tests and testnets where the core resources account exists.
@@ -158,7 +158,7 @@ module arx::arx_coin {
     use arx::aggregator_factory;
 
     #[test_only]
-    public fun initialize_for_test(arx: &signer): (BurnCapability<ArxCoin>, MintCapability<ArxCoin>) {
+    public fun initialize_for_test(arx: &signer): (BurnCapability<XUSDCoin>, MintCapability<XUSDCoin>) {
         aggregator_factory::initialize_aggregator_factory_for_test(arx);
         initialize(arx)
     }
@@ -166,7 +166,7 @@ module arx::arx_coin {
     // This is particularly useful if the aggregator_factory is already initialized via another call
     // path.
     #[test_only]
-    public fun initialize_for_test_without_aggregator_factory(arx: &signer): (BurnCapability<ArxCoin>, MintCapability<ArxCoin>) {
+    public fun initialize_for_test_without_aggregator_factory(arx: &signer): (BurnCapability<XUSDCoin>, MintCapability<XUSDCoin>) {
         initialize(arx)
     }
 }

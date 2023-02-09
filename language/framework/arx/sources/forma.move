@@ -53,6 +53,20 @@ module arx::forma {
 	borrow_global<Forma<CoinType>>(@arx).nox_incentive
     }
 
+    // /// Set the lux incentive of an existing forma.
+    // /// This is used to dynamically adjust liquidity token incentives.
+    // public fun set_lux_incentive<CoinType>(value: u64) acquires Forma {
+    // 	let forma = borrow_global_mut<Forma<CoinType>>(@arx);
+    // 	forma.lux_incentive = value;
+    // }
+
+    // /// Set the nox incentive of an existing forma.
+    // /// This is used to dynamically adjust liquidity token incentives.
+    // public fun set_nox_incentive<CoinType>(value: u64) acquires Forma {
+    // 	let forma = borrow_global_mut<Forma<CoinType>>(@arx);
+    // 	forma.nox_incentive = value;
+    // }
+
     #[test(arx = @arx)]
     public entry fun test_initialize(arx: &signer) {
 	// Test
