@@ -20,28 +20,20 @@ module arx::liquidity_pool {
 
     /// When coins used to create pair have the wrong ordering.
     const EINVALID_ORDERING: u64 = 1;
-
     /// A liquidity pool already exists for this pair.
-    const ELIQUIDITY_POOL_EXISTS: u64 = 2;
-
+    const EPOOL_EXISTS: u64 = 2;
     /// When not enough liquidity is minted.
-    const ENOT_ENOUGH_INITIAL_LIQUIDITY: u64 = 3;
-
+    const EINSUFFICIENT_INITIAL_LIQUIDITY: u64 = 3;
     /// When not enough liquidity is minted.
     const EINSUFFICIENT_LIQUIDITY: u64 = 4;
-
     /// Supplied X and Y for a swap was equal to zero.
     const EZERO_COIN_IN: u64 = 5;
-
     /// Triggered by a swap which causes liquidity to decrease.
     const EINVALID_SWAP: u64 = 6;
-
     /// This error should never occur.
     const EINVALID_CURVE: u64 = 7;
-
     /// Incorrect lp coin burn values
     const EINVALID_BURN_VALUES: u64 = 8;
-
     /// When pool doesn't exists for pair.
     const EPOOL_DOES_NOT_EXIST: u64 = 9;
 
@@ -67,12 +59,20 @@ module arx::liquidity_pool {
 	last_price_x_cumulative: u128,
 	/// The last cumulative price in `Y`.
 	last_price_y_cumulative: u128,
+	/// The last cumulative reserve in `X`.
+	last_x_reserve_cumulative: u128,
+	/// The last cumulative reserve in `Y`.
+	last_y_reserve_cumulative: u128,
 	/// The number of cumulative price samples taken across the last epoch.
 	epoch_samples: u128,
-	/// The time weighted average price in `X`.
+	/// The time weighted average price of `X` relative to `Y`.
 	epoch_twap_x: u128,
-	/// The time weighted average price in `Y`.
+	/// The time weighted average price in `Y` relative to `X`.
 	epoch_twap_y: u128,
+	/// The time weighted average reserves of `X`.
+	epoch_twar_x: u128,
+	/// The time weighted average reserves of `Y`.
+	epoch_twar_y: u128,
 	/// The liquidity pools mint capability.
 	lp_mint_cap: coin::MintCapability<LP<X, Y, Curve>>,
 	/// The liquidity pools burn capability.
@@ -81,6 +81,29 @@ module arx::liquidity_pool {
 	x_scale: u64,
 	/// The scaling factor of coin `Y`.
 	y_scale: u64,
+    }
+
+    // Delta enumeration
+
+    /// Delta zero
+    const DELTA_EQUAL: u64 = 0;
+    /// Delta positive sign
+    const DELTA_POSITIVE: u64 = 1;
+    /// Delta negative sign
+    const DELTA_NEGATIVE: u64 = 2;
+
+    /// Represents the time weighted average reserve of X in the last epoch.
+    struct Delta has drop {
+	/// Whether X > Y, Y > X or X = Y
+	sign: u64,
+	/// The cumulative difference in X vs Y
+	value: u64,
+    }
+    public fun get_delta_sign(delta: &Delta): u64 {
+	delta.sign
+    }
+    public fun get_delta_value(delta: &Delta): u64 {
+	delta.value
     }
 
     /// Liquidity pool events.
@@ -144,7 +167,7 @@ module arx::liquidity_pool {
 	curves::assert_valid_curve<Curve>();
 
 	// Ensure the liquidity pool does not already exist.
-	assert!(!exists<LiquidityPool<X, Y, Curve>>(@arx), ELIQUIDITY_POOL_EXISTS);
+	assert!(!exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_EXISTS);
 
 	let (lp_name, lp_symbol) = coin_type::generate_lp_name_and_symbol<X, Y, Curve>();
 	let (lp_burn_cap, lp_freeze_cap, lp_mint_cap) =
@@ -172,9 +195,13 @@ module arx::liquidity_pool {
 	    last_block_timestamp: 0,
 	    last_price_x_cumulative: 0,
 	    last_price_y_cumulative: 0,
+	    last_x_reserve_cumulative: 0,
+	    last_y_reserve_cumulative: 0,
 	    epoch_samples: 0,
 	    epoch_twap_x: 0,
 	    epoch_twap_y: 0,
+	    epoch_twar_x: 0,
+	    epoch_twar_y: 0,
 	    lp_mint_cap,
 	    lp_burn_cap,
 	    x_scale,
@@ -217,11 +244,15 @@ module arx::liquidity_pool {
 
 	let provided_liq = if (lp_coins_total == 0) {
 	    let initial_liq = math128::sqrt(math64::mul_to_u128(x_provided_val, y_provided_val));
-	    assert!(initial_liq > MINIMUM_LIQUIDITY, ENOT_ENOUGH_INITIAL_LIQUIDITY);
+	    assert!(initial_liq > MINIMUM_LIQUIDITY, EINSUFFICIENT_INITIAL_LIQUIDITY);
 	    initial_liq - MINIMUM_LIQUIDITY
 	} else {
-	    let x_liq = math128::mul_div((x_provided_val as u128), lp_coins_total, (x_reserve_size as u128));
-	    let y_liq = math128::mul_div((y_provided_val as u128), lp_coins_total, (y_reserve_size as u128));
+	    let x_liq = math128::mul_div(
+		(x_provided_val as u128), lp_coins_total, (x_reserve_size as u128)
+	    );
+	    let y_liq = math128::mul_div(
+		(y_provided_val as u128), lp_coins_total, (y_reserve_size as u128)
+	    );
 	    if (x_liq < y_liq) {
 		x_liq
 	    } else {
@@ -360,12 +391,14 @@ module arx::liquidity_pool {
 	let block_timestamp = timestamp::now_seconds();
 	let time_elapsed = ((block_timestamp - last_block_timestamp) as u128);
 	if (time_elapsed > 0 && x_reserve != 0 && y_reserve != 0) {
-	    // If the number of epoch samples is 0, then the pools last cumulative price is reset to 0.
+	    // If the number of epoch samples is 0, then the pools last cumulative price is reset.
 	    // Note that this is done after checking that a new sample can be taken since otherwise the
 	    // last cumulative price will be 0 until a next successful oracle update is initiated.
 	    // This also makes it less likely that there will be a price overflow when computing the
 	    // cumulative price.
 	    if (pool.epoch_samples == 0) {
+		pool.last_x_reserve_cumulative = 0;
+		pool.last_y_reserve_cumulative = 0;
 		pool.last_price_x_cumulative = 0;
 		pool.last_price_y_cumulative = 0;
 	    };
@@ -374,15 +407,23 @@ module arx::liquidity_pool {
 		uq64x64::to_u128(uq64x64::fraction(y_reserve, x_reserve)) * time_elapsed;
 	    let last_price_y_cumulative =
 		uq64x64::to_u128(uq64x64::fraction(x_reserve, y_reserve)) * time_elapsed;
-
 	    pool.last_price_x_cumulative =
 		math128::overflow_add(pool.last_price_x_cumulative, last_price_x_cumulative);
 	    pool.last_price_y_cumulative =
 		math128::overflow_add(pool.last_price_y_cumulative, last_price_y_cumulative);
 
+	    let last_x_reserve_cumulative = (x_reserve as u128) * time_elapsed;
+	    let last_y_reserve_cumulative = (y_reserve as u128) * time_elapsed;
+	    pool.last_x_reserve_cumulative =
+		math128::overflow_add(pool.last_x_reserve_cumulative, last_x_reserve_cumulative);
+	    pool.last_y_reserve_cumulative =
+		math128::overflow_add(pool.last_y_reserve_cumulative, last_y_reserve_cumulative);
+
 	    pool.epoch_samples = pool.epoch_samples + 1;
 	    pool.epoch_twap_x = pool.last_price_x_cumulative / pool.epoch_samples;
-	    pool.epoch_twap_y =	pool.last_price_y_cumulative / pool.epoch_samples;
+	    pool.epoch_twap_y = pool.last_price_y_cumulative / pool.epoch_samples;
+	    pool.epoch_twar_x = pool.last_x_reserve_cumulative / pool.epoch_samples;
+	    pool.epoch_twar_y = pool.last_y_reserve_cumulative / pool.epoch_samples;
 
 	    let lp_events = borrow_global_mut<LiquidityPoolEvents<X, Y, Curve>>(@arx);
 	    event::emit_event(
@@ -396,6 +437,25 @@ module arx::liquidity_pool {
 		});
 	};
 	pool.last_block_timestamp = block_timestamp;
+    }
+
+    /// Get the time weighted average excess / shortage of `X` relative to `Y`.
+    public fun get_last_epoch_delta<X, Y, Curve>(): Delta acquires LiquidityPool {
+	assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
+	assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
+
+	let pool = borrow_global<LiquidityPool<X, Y, Curve>>(@arx);
+
+	// If there is an excess of X in reserves then the sign is negative
+	if (pool.epoch_twar_x > pool.epoch_twar_y) {
+	    Delta { sign: DELTA_NEGATIVE, value: ((pool.epoch_twar_x - pool.epoch_twar_y) as u64) }
+	} else if (pool.epoch_twar_y > pool.epoch_twar_x) {
+	    // If there is a shortage of X in reserves then the sign is positive
+	    Delta { sign: DELTA_POSITIVE, value: ((pool.epoch_twar_y - pool.epoch_twar_x) as u64) }
+	} else {
+	    // Otherwise sign is equal
+	    Delta { sign: DELTA_EQUAL, value: 0 }
+	}
     }
 
     fun assert_lp_value_increase<Curve>(
@@ -426,7 +486,31 @@ module arx::liquidity_pool {
 
     // Getters
 
-    // Get the current cumulative prices of `X` and `Y`.
+    /// Get the reserves of a pool.
+    public fun get_reserve_values<X, Y, Curve>(): (u64, u64)
+	acquires LiquidityPool {
+        assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
+
+        let liquidity_pool = borrow_global<LiquidityPool<X, Y, Curve>>(@arx);
+        let x_reserve = coin::value(&liquidity_pool.coin_x_reserve);
+        let y_reserve = coin::value(&liquidity_pool.coin_y_reserve);
+
+        (x_reserve, y_reserve)
+    }
+
+
+    /// Get decimals scales (10^X decimals, 10^Y decimals) for stable curve.
+    /// For uncorrelated curve would return just zeros.
+    public fun get_decimals_scales<X, Y, Curve>(): (u64, u64) acquires LiquidityPool {
+        assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
+
+        let pool = borrow_global<LiquidityPool<X, Y, Curve>>(@arx);
+        (pool.x_scale, pool.y_scale)
+    }
+
+    /// Get the current cumulative prices of `X` and `Y`.
     public fun get_cumulative_prices<X, Y, Curve>(): (u128, u128, u64)
 	acquires LiquidityPool
     {
@@ -454,5 +538,18 @@ module arx::liquidity_pool {
 	let last_epoch_timestamp = liquidity_pool.last_block_timestamp;
 
 	(epoch_twap_x, epoch_twap_y, last_epoch_timestamp)
+    }
+
+    // Get the current epoch time weighted average reserves of `X` and `Y`.
+    public fun get_epoch_twar<X, Y, Curve>(): (u128, u128)
+	acquires LiquidityPool
+    {
+	assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
+	assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
+
+	let liquidity_pool = borrow_global<LiquidityPool<X, Y, Curve>>(@arx);
+	let epoch_twar_x = *&liquidity_pool.epoch_twar_x;
+	let epoch_twar_y = *&liquidity_pool.epoch_twar_y;
+	(epoch_twar_x, epoch_twar_y)
     }
 }
