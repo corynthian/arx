@@ -12,6 +12,8 @@
 -  [Function `is_stable`](#0x1_curves_is_stable)
 -  [Function `is_valid_curve`](#0x1_curves_is_valid_curve)
 -  [Function `assert_valid_curve`](#0x1_curves_assert_valid_curve)
+-  [Function `assert_stable_curve`](#0x1_curves_assert_stable_curve)
+-  [Function `assert_uncorrelated_curve`](#0x1_curves_assert_uncorrelated_curve)
 
 
 <pre><code><b>use</b> <a href="type_info.md#0x1_type_info">0x1::type_info</a>;
@@ -168,7 +170,7 @@ Is <code>Curve</code> type valid or not (means correct type used).
 
 ## Function `assert_valid_curve`
 
-Checks if <code>Curve</code> is valid (means correct type used).
+Ensures <code>Curve</code> is valid (means correct type used).
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="curves.md#0x1_curves_assert_valid_curve">assert_valid_curve</a>&lt;Curve&gt;()
@@ -182,6 +184,56 @@ Checks if <code>Curve</code> is valid (means correct type used).
 
 <pre><code><b>public</b> <b>fun</b> <a href="curves.md#0x1_curves_assert_valid_curve">assert_valid_curve</a>&lt;Curve&gt;() {
     <b>assert</b>!(<a href="curves.md#0x1_curves_is_valid_curve">is_valid_curve</a>&lt;Curve&gt;(), <a href="curves.md#0x1_curves_EINVALID_CURVE">EINVALID_CURVE</a>);
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_curves_assert_stable_curve"></a>
+
+## Function `assert_stable_curve`
+
+Ensures  <code>Curve</code> is <code><a href="curves.md#0x1_curves_Stable">Stable</a></code>.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="curves.md#0x1_curves_assert_stable_curve">assert_stable_curve</a>&lt;Curve&gt;()
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="curves.md#0x1_curves_assert_stable_curve">assert_stable_curve</a>&lt;Curve&gt;() {
+	<b>assert</b>!(<a href="curves.md#0x1_curves_is_stable">is_stable</a>&lt;Curve&gt;(), <a href="curves.md#0x1_curves_EINVALID_CURVE">EINVALID_CURVE</a>);
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_curves_assert_uncorrelated_curve"></a>
+
+## Function `assert_uncorrelated_curve`
+
+Ensures  <code>Curve</code> is <code><a href="curves.md#0x1_curves_Uncorrelated">Uncorrelated</a></code>.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="curves.md#0x1_curves_assert_uncorrelated_curve">assert_uncorrelated_curve</a>&lt;Curve&gt;()
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="curves.md#0x1_curves_assert_uncorrelated_curve">assert_uncorrelated_curve</a>&lt;Curve&gt;() {
+	<b>assert</b>!(<a href="curves.md#0x1_curves_is_uncorrelated">is_uncorrelated</a>&lt;Curve&gt;(), <a href="curves.md#0x1_curves_EINVALID_CURVE">EINVALID_CURVE</a>);
 }
 </code></pre>
 

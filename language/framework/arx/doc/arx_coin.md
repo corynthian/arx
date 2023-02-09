@@ -282,8 +282,8 @@ initial validators and accounts have been initialized during genesis.
 
 ## Function `configure_accounts_for_test`
 
-Can only be called during genesis for tests to grant mint capability to open libra and core
-resources accounts.
+Can only be called during genesis for tests to grant mint capability to arx and core resources
+accounts.
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="arx_coin.md#0x1_arx_coin_configure_accounts_for_test">configure_accounts_for_test</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, core_resources: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, mint_cap: <a href="coin.md#0x1_coin_MintCapability">coin::MintCapability</a>&lt;<a href="arx_coin.md#0x1_arx_coin_ArxCoin">arx_coin::ArxCoin</a>&gt;)

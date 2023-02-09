@@ -9,6 +9,7 @@ Arx governance account.
 
 -  [Struct `LP`](#0x1_liquidity_pool_LP)
 -  [Resource `LiquidityPool`](#0x1_liquidity_pool_LiquidityPool)
+-  [Struct `Delta`](#0x1_liquidity_pool_Delta)
 -  [Resource `LiquidityPoolEvents`](#0x1_liquidity_pool_LiquidityPoolEvents)
 -  [Struct `PoolCreatedEvent`](#0x1_liquidity_pool_PoolCreatedEvent)
 -  [Struct `LiquidityAddedEvent`](#0x1_liquidity_pool_LiquidityAddedEvent)
@@ -16,14 +17,20 @@ Arx governance account.
 -  [Struct `SwapEvent`](#0x1_liquidity_pool_SwapEvent)
 -  [Struct `OracleUpdateEvent`](#0x1_liquidity_pool_OracleUpdateEvent)
 -  [Constants](#@Constants_0)
+-  [Function `get_delta_sign`](#0x1_liquidity_pool_get_delta_sign)
+-  [Function `get_delta_value`](#0x1_liquidity_pool_get_delta_value)
 -  [Function `register`](#0x1_liquidity_pool_register)
 -  [Function `mint`](#0x1_liquidity_pool_mint)
 -  [Function `burn`](#0x1_liquidity_pool_burn)
 -  [Function `swap`](#0x1_liquidity_pool_swap)
 -  [Function `update_oracle`](#0x1_liquidity_pool_update_oracle)
+-  [Function `get_last_epoch_delta`](#0x1_liquidity_pool_get_last_epoch_delta)
 -  [Function `assert_lp_value_increase`](#0x1_liquidity_pool_assert_lp_value_increase)
+-  [Function `get_reserve_values`](#0x1_liquidity_pool_get_reserve_values)
+-  [Function `get_decimals_scales`](#0x1_liquidity_pool_get_decimals_scales)
 -  [Function `get_cumulative_prices`](#0x1_liquidity_pool_get_cumulative_prices)
 -  [Function `get_epoch_twap`](#0x1_liquidity_pool_get_epoch_twap)
+-  [Function `get_epoch_twar`](#0x1_liquidity_pool_get_epoch_twar)
 
 
 <pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
@@ -126,6 +133,18 @@ Liquidity pool with cumulative price aggregation.
  The last cumulative price in <code>Y</code>.
 </dd>
 <dt>
+<code>last_x_reserve_cumulative: u128</code>
+</dt>
+<dd>
+ The last cumulative reserve in <code>X</code>.
+</dd>
+<dt>
+<code>last_y_reserve_cumulative: u128</code>
+</dt>
+<dd>
+ The last cumulative reserve in <code>Y</code>.
+</dd>
+<dt>
 <code>epoch_samples: u128</code>
 </dt>
 <dd>
@@ -135,13 +154,25 @@ Liquidity pool with cumulative price aggregation.
 <code>epoch_twap_x: u128</code>
 </dt>
 <dd>
- The time weighted average price in <code>X</code>.
+ The time weighted average price of <code>X</code> relative to <code>Y</code>.
 </dd>
 <dt>
 <code>epoch_twap_y: u128</code>
 </dt>
 <dd>
- The time weighted average price in <code>Y</code>.
+ The time weighted average price in <code>Y</code> relative to <code>X</code>.
+</dd>
+<dt>
+<code>epoch_twar_x: u128</code>
+</dt>
+<dd>
+ The time weighted average reserves of <code>X</code>.
+</dd>
+<dt>
+<code>epoch_twar_y: u128</code>
+</dt>
+<dd>
+ The time weighted average reserves of <code>Y</code>.
 </dd>
 <dt>
 <code>lp_mint_cap: <a href="coin.md#0x1_coin_MintCapability">coin::MintCapability</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">liquidity_pool::LP</a>&lt;X, Y, Curve&gt;&gt;</code>
@@ -166,6 +197,40 @@ Liquidity pool with cumulative price aggregation.
 </dt>
 <dd>
  The scaling factor of coin <code>Y</code>.
+</dd>
+</dl>
+
+
+</details>
+
+<a name="0x1_liquidity_pool_Delta"></a>
+
+## Struct `Delta`
+
+Represents the time weighted average reserve of X in the last epoch.
+
+
+<pre><code><b>struct</b> <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> <b>has</b> drop
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>sign: u64</code>
+</dt>
+<dd>
+ Whether X > Y, Y > X or X = Y
+</dd>
+<dt>
+<code>value: u64</code>
+</dt>
+<dd>
+ The cumulative difference in X vs Y
 </dd>
 </dl>
 
@@ -445,6 +510,46 @@ This error should never occur.
 
 
 
+<a name="0x1_liquidity_pool_DELTA_EQUAL"></a>
+
+Delta zero
+
+
+<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_EQUAL">DELTA_EQUAL</a>: u64 = 0;
+</code></pre>
+
+
+
+<a name="0x1_liquidity_pool_DELTA_NEGATIVE"></a>
+
+Delta negative sign
+
+
+<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_NEGATIVE">DELTA_NEGATIVE</a>: u64 = 2;
+</code></pre>
+
+
+
+<a name="0x1_liquidity_pool_DELTA_POSITIVE"></a>
+
+Delta positive sign
+
+
+<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_POSITIVE">DELTA_POSITIVE</a>: u64 = 1;
+</code></pre>
+
+
+
+<a name="0x1_liquidity_pool_EINSUFFICIENT_INITIAL_LIQUIDITY"></a>
+
+When not enough liquidity is minted.
+
+
+<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_EINSUFFICIENT_INITIAL_LIQUIDITY">EINSUFFICIENT_INITIAL_LIQUIDITY</a>: u64 = 3;
+</code></pre>
+
+
+
 <a name="0x1_liquidity_pool_EINSUFFICIENT_LIQUIDITY"></a>
 
 When not enough liquidity is minted.
@@ -485,32 +590,22 @@ Triggered by a swap which causes liquidity to decrease.
 
 
 
-<a name="0x1_liquidity_pool_ELIQUIDITY_POOL_EXISTS"></a>
-
-A liquidity pool already exists for this pair.
-
-
-<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_ELIQUIDITY_POOL_EXISTS">ELIQUIDITY_POOL_EXISTS</a>: u64 = 2;
-</code></pre>
-
-
-
-<a name="0x1_liquidity_pool_ENOT_ENOUGH_INITIAL_LIQUIDITY"></a>
-
-When not enough liquidity is minted.
-
-
-<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_ENOT_ENOUGH_INITIAL_LIQUIDITY">ENOT_ENOUGH_INITIAL_LIQUIDITY</a>: u64 = 3;
-</code></pre>
-
-
-
 <a name="0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST"></a>
 
 When pool doesn't exists for pair.
 
 
 <pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>: u64 = 9;
+</code></pre>
+
+
+
+<a name="0x1_liquidity_pool_EPOOL_EXISTS"></a>
+
+A liquidity pool already exists for this pair.
+
+
+<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_EXISTS">EPOOL_EXISTS</a>: u64 = 2;
 </code></pre>
 
 
@@ -534,6 +629,54 @@ Minimum liquidity.
 </code></pre>
 
 
+
+<a name="0x1_liquidity_pool_get_delta_sign"></a>
+
+## Function `get_delta_sign`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_delta_sign">get_delta_sign</a>(delta: &<a href="liquidity_pool.md#0x1_liquidity_pool_Delta">liquidity_pool::Delta</a>): u64
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_delta_sign">get_delta_sign</a>(delta: &<a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a>): u64 {
+	delta.sign
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_liquidity_pool_get_delta_value"></a>
+
+## Function `get_delta_value`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_delta_value">get_delta_value</a>(delta: &<a href="liquidity_pool.md#0x1_liquidity_pool_Delta">liquidity_pool::Delta</a>): u64
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_delta_value">get_delta_value</a>(delta: &<a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a>): u64 {
+	delta.value
+}
+</code></pre>
+
+
+
+</details>
 
 <a name="0x1_liquidity_pool_register"></a>
 
@@ -566,7 +709,7 @@ Register a liquidity pool for pair <code>X:Y</code>. This function is only calla
 	<a href="../../std/doc/curves.md#0x1_curves_assert_valid_curve">curves::assert_valid_curve</a>&lt;Curve&gt;();
 
 	// Ensure the liquidity pool does not already exist.
-	<b>assert</b>!(!<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_ELIQUIDITY_POOL_EXISTS">ELIQUIDITY_POOL_EXISTS</a>);
+	<b>assert</b>!(!<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_EXISTS">EPOOL_EXISTS</a>);
 
 	<b>let</b> (lp_name, lp_symbol) = <a href="coin_type.md#0x1_coin_type_generate_lp_name_and_symbol">coin_type::generate_lp_name_and_symbol</a>&lt;X, Y, Curve&gt;();
 	<b>let</b> (lp_burn_cap, lp_freeze_cap, lp_mint_cap) =
@@ -594,9 +737,13 @@ Register a liquidity pool for pair <code>X:Y</code>. This function is only calla
 	    last_block_timestamp: 0,
 	    last_price_x_cumulative: 0,
 	    last_price_y_cumulative: 0,
+	    last_x_reserve_cumulative: 0,
+	    last_y_reserve_cumulative: 0,
 	    epoch_samples: 0,
 	    epoch_twap_x: 0,
 	    epoch_twap_y: 0,
+	    epoch_twar_x: 0,
+	    epoch_twar_y: 0,
 	    lp_mint_cap,
 	    lp_burn_cap,
 	    x_scale,
@@ -659,11 +806,15 @@ Returns LP coins: <code>Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP
 
 	<b>let</b> provided_liq = <b>if</b> (lp_coins_total == 0) {
 	    <b>let</b> initial_liq = <a href="../../std/doc/math128.md#0x1_math128_sqrt">math128::sqrt</a>(<a href="../../std/doc/math64.md#0x1_math64_mul_to_u128">math64::mul_to_u128</a>(x_provided_val, y_provided_val));
-	    <b>assert</b>!(initial_liq &gt; <a href="liquidity_pool.md#0x1_liquidity_pool_MINIMUM_LIQUIDITY">MINIMUM_LIQUIDITY</a>, <a href="liquidity_pool.md#0x1_liquidity_pool_ENOT_ENOUGH_INITIAL_LIQUIDITY">ENOT_ENOUGH_INITIAL_LIQUIDITY</a>);
+	    <b>assert</b>!(initial_liq &gt; <a href="liquidity_pool.md#0x1_liquidity_pool_MINIMUM_LIQUIDITY">MINIMUM_LIQUIDITY</a>, <a href="liquidity_pool.md#0x1_liquidity_pool_EINSUFFICIENT_INITIAL_LIQUIDITY">EINSUFFICIENT_INITIAL_LIQUIDITY</a>);
 	    initial_liq - <a href="liquidity_pool.md#0x1_liquidity_pool_MINIMUM_LIQUIDITY">MINIMUM_LIQUIDITY</a>
 	} <b>else</b> {
-	    <b>let</b> x_liq = <a href="../../std/doc/math128.md#0x1_math128_mul_div">math128::mul_div</a>((x_provided_val <b>as</b> u128), lp_coins_total, (x_reserve_size <b>as</b> u128));
-	    <b>let</b> y_liq = <a href="../../std/doc/math128.md#0x1_math128_mul_div">math128::mul_div</a>((y_provided_val <b>as</b> u128), lp_coins_total, (y_reserve_size <b>as</b> u128));
+	    <b>let</b> x_liq = <a href="../../std/doc/math128.md#0x1_math128_mul_div">math128::mul_div</a>(
+		(x_provided_val <b>as</b> u128), lp_coins_total, (x_reserve_size <b>as</b> u128)
+	    );
+	    <b>let</b> y_liq = <a href="../../std/doc/math128.md#0x1_math128_mul_div">math128::mul_div</a>(
+		(y_provided_val <b>as</b> u128), lp_coins_total, (y_reserve_size <b>as</b> u128)
+	    );
 	    <b>if</b> (x_liq &lt; y_liq) {
 		x_liq
 	    } <b>else</b> {
@@ -860,12 +1011,14 @@ Update the cumulative prices (decentralised price oracle).
 	<b>let</b> block_timestamp = <a href="timestamp.md#0x1_timestamp_now_seconds">timestamp::now_seconds</a>();
 	<b>let</b> time_elapsed = ((block_timestamp - last_block_timestamp) <b>as</b> u128);
 	<b>if</b> (time_elapsed &gt; 0 && x_reserve != 0 && y_reserve != 0) {
-	    // If the number of epoch samples is 0, then the pools last cumulative price is reset <b>to</b> 0.
+	    // If the number of epoch samples is 0, then the pools last cumulative price is reset.
 	    // Note that this is done after checking that a new sample can be taken since otherwise the
 	    // last cumulative price will be 0 until a next successful oracle <b>update</b> is initiated.
 	    // This also makes it less likely that there will be a price overflow when computing the
 	    // cumulative price.
 	    <b>if</b> (pool.epoch_samples == 0) {
+		pool.last_x_reserve_cumulative = 0;
+		pool.last_y_reserve_cumulative = 0;
 		pool.last_price_x_cumulative = 0;
 		pool.last_price_y_cumulative = 0;
 	    };
@@ -874,15 +1027,23 @@ Update the cumulative prices (decentralised price oracle).
 		<a href="../../std/doc/uq64x64.md#0x1_uq64x64_to_u128">uq64x64::to_u128</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction">uq64x64::fraction</a>(y_reserve, x_reserve)) * time_elapsed;
 	    <b>let</b> last_price_y_cumulative =
 		<a href="../../std/doc/uq64x64.md#0x1_uq64x64_to_u128">uq64x64::to_u128</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction">uq64x64::fraction</a>(x_reserve, y_reserve)) * time_elapsed;
-
 	    pool.last_price_x_cumulative =
 		<a href="../../std/doc/math128.md#0x1_math128_overflow_add">math128::overflow_add</a>(pool.last_price_x_cumulative, last_price_x_cumulative);
 	    pool.last_price_y_cumulative =
 		<a href="../../std/doc/math128.md#0x1_math128_overflow_add">math128::overflow_add</a>(pool.last_price_y_cumulative, last_price_y_cumulative);
 
+	    <b>let</b> last_x_reserve_cumulative = (x_reserve <b>as</b> u128) * time_elapsed;
+	    <b>let</b> last_y_reserve_cumulative = (y_reserve <b>as</b> u128) * time_elapsed;
+	    pool.last_x_reserve_cumulative =
+		<a href="../../std/doc/math128.md#0x1_math128_overflow_add">math128::overflow_add</a>(pool.last_x_reserve_cumulative, last_x_reserve_cumulative);
+	    pool.last_y_reserve_cumulative =
+		<a href="../../std/doc/math128.md#0x1_math128_overflow_add">math128::overflow_add</a>(pool.last_y_reserve_cumulative, last_y_reserve_cumulative);
+
 	    pool.epoch_samples = pool.epoch_samples + 1;
 	    pool.epoch_twap_x = pool.last_price_x_cumulative / pool.epoch_samples;
-	    pool.epoch_twap_y =	pool.last_price_y_cumulative / pool.epoch_samples;
+	    pool.epoch_twap_y = pool.last_price_y_cumulative / pool.epoch_samples;
+	    pool.epoch_twar_x = pool.last_x_reserve_cumulative / pool.epoch_samples;
+	    pool.epoch_twar_y = pool.last_y_reserve_cumulative / pool.epoch_samples;
 
 	    <b>let</b> lp_events = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a>&lt;X, Y, Curve&gt;&gt;(@arx);
 	    <a href="event.md#0x1_event_emit_event">event::emit_event</a>(
@@ -896,6 +1057,45 @@ Update the cumulative prices (decentralised price oracle).
 		});
 	};
 	pool.last_block_timestamp = block_timestamp;
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_liquidity_pool_get_last_epoch_delta"></a>
+
+## Function `get_last_epoch_delta`
+
+Get the time weighted average excess / shortage of <code>X</code> relative to <code>Y</code>.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_last_epoch_delta">get_last_epoch_delta</a>&lt;X, Y, Curve&gt;(): <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">liquidity_pool::Delta</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_last_epoch_delta">get_last_epoch_delta</a>&lt;X, Y, Curve&gt;(): <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a> {
+	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
+	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
+
+	<b>let</b> pool = <b>borrow_global</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+
+	// If there is an excess of X in reserves then the sign is negative
+	<b>if</b> (pool.epoch_twar_x &gt; pool.epoch_twar_y) {
+	    <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> { sign: <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_NEGATIVE">DELTA_NEGATIVE</a>, value: ((pool.epoch_twar_x - pool.epoch_twar_y) <b>as</b> u64) }
+	} <b>else</b> <b>if</b> (pool.epoch_twar_y &gt; pool.epoch_twar_x) {
+	    // If there is a shortage of X in reserves then the sign is positive
+	    <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> { sign: <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_POSITIVE">DELTA_POSITIVE</a>, value: ((pool.epoch_twar_y - pool.epoch_twar_x) <b>as</b> u64) }
+	} <b>else</b> {
+	    // Otherwise sign is equal
+	    <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> { sign: <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_EQUAL">DELTA_EQUAL</a>, value: 0 }
+	}
 }
 </code></pre>
 
@@ -949,10 +1149,74 @@ Update the cumulative prices (decentralised price oracle).
 
 </details>
 
+<a name="0x1_liquidity_pool_get_reserve_values"></a>
+
+## Function `get_reserve_values`
+
+Get the reserves of a pool.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_reserve_values">get_reserve_values</a>&lt;X, Y, Curve&gt;(): (u64, u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_reserve_values">get_reserve_values</a>&lt;X, Y, Curve&gt;(): (u64, u64)
+	<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a> {
+    <b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
+    <b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
+
+    <b>let</b> <a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a> = <b>borrow_global</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+    <b>let</b> x_reserve = <a href="coin.md#0x1_coin_value">coin::value</a>(&<a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.coin_x_reserve);
+    <b>let</b> y_reserve = <a href="coin.md#0x1_coin_value">coin::value</a>(&<a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.coin_y_reserve);
+
+    (x_reserve, y_reserve)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_liquidity_pool_get_decimals_scales"></a>
+
+## Function `get_decimals_scales`
+
+Get decimals scales (10^X decimals, 10^Y decimals) for stable curve.
+For uncorrelated curve would return just zeros.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_decimals_scales">get_decimals_scales</a>&lt;X, Y, Curve&gt;(): (u64, u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_decimals_scales">get_decimals_scales</a>&lt;X, Y, Curve&gt;(): (u64, u64) <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a> {
+    <b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
+    <b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
+
+    <b>let</b> pool = <b>borrow_global</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+    (pool.x_scale, pool.y_scale)
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x1_liquidity_pool_get_cumulative_prices"></a>
 
 ## Function `get_cumulative_prices`
 
+Get the current cumulative prices of <code>X</code> and <code>Y</code>.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_cumulative_prices">get_cumulative_prices</a>&lt;X, Y, Curve&gt;(): (u128, u128, u64)
@@ -1010,6 +1274,38 @@ Update the cumulative prices (decentralised price oracle).
 	<b>let</b> last_epoch_timestamp = <a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.last_block_timestamp;
 
 	(epoch_twap_x, epoch_twap_y, last_epoch_timestamp)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_liquidity_pool_get_epoch_twar"></a>
+
+## Function `get_epoch_twar`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_epoch_twar">get_epoch_twar</a>&lt;X, Y, Curve&gt;(): (u128, u128)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_epoch_twar">get_epoch_twar</a>&lt;X, Y, Curve&gt;(): (u128, u128)
+	<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>
+{
+	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
+	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
+
+	<b>let</b> <a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a> = <b>borrow_global</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	<b>let</b> epoch_twar_x = *&<a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.epoch_twar_x;
+	<b>let</b> epoch_twar_y = *&<a href="liquidity_pool.md#0x1_liquidity_pool">liquidity_pool</a>.epoch_twar_y;
+	(epoch_twar_x, epoch_twar_y)
 }
 </code></pre>
 

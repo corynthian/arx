@@ -36,9 +36,14 @@
 <b>use</b> <a href="../../std/doc/features.md#0x1_features">0x1::features</a>;
 <b>use</b> <a href="gas_schedule.md#0x1_gas_schedule">0x1::gas_schedule</a>;
 <b>use</b> <a href="governance.md#0x1_governance">0x1::governance</a>;
+<b>use</b> <a href="lux_coin.md#0x1_lux_coin">0x1::lux_coin</a>;
+<b>use</b> <a href="moneta.md#0x1_moneta">0x1::moneta</a>;
+<b>use</b> <a href="nox_coin.md#0x1_nox_coin">0x1::nox_coin</a>;
 <b>use</b> <a href="reconfiguration.md#0x1_reconfiguration">0x1::reconfiguration</a>;
+<b>use</b> <a href="solaris.md#0x1_solaris">0x1::solaris</a>;
 <b>use</b> <a href="state_storage.md#0x1_state_storage">0x1::state_storage</a>;
 <b>use</b> <a href="storage_gas.md#0x1_storage_gas">0x1::storage_gas</a>;
+<b>use</b> <a href="subsidialis.md#0x1_subsidialis">0x1::subsidialis</a>;
 <b>use</b> <a href="timestamp.md#0x1_timestamp">0x1::timestamp</a>;
 <b>use</b> <a href="transaction_fee.md#0x1_transaction_fee">0x1::transaction_fee</a>;
 <b>use</b> <a href="transaction_validation.md#0x1_transaction_validation">0x1::transaction_validation</a>;
@@ -46,6 +51,7 @@
 <b>use</b> <a href="validator.md#0x1_validator">0x1::validator</a>;
 <b>use</b> <a href="../../std/doc/vector.md#0x1_vector">0x1::vector</a>;
 <b>use</b> <a href="version.md#0x1_version">0x1::version</a>;
+<b>use</b> <a href="xusd_coin.md#0x1_xusd_coin">0x1::xusd_coin</a>;
 </code></pre>
 
 
@@ -278,7 +284,7 @@ Genesis step 1: Initialize ol framework account and core modules on chain.
     rewards_rate_denominator: u64,
     voting_power_increase_limit: u64,
 ) {
-    // Initialize the open libra <a href="account.md#0x1_account">account</a>. This is the <a href="account.md#0x1_account">account</a> <b>where</b> system resources and modules
+    // Initialize the arx <a href="account.md#0x1_account">account</a>. This is the <a href="account.md#0x1_account">account</a> <b>where</b> system resources and modules
 	// will be deployed <b>to</b>. This will be entirely managed by on-chain <a href="governance.md#0x1_governance">governance</a> and no entities have the key or privileges
     // <b>to</b> <b>use</b> this <a href="account.md#0x1_account">account</a>.
     <b>let</b> (arx, arx_signer_cap) = <a href="account.md#0x1_account_create_reserved_account">account::create_reserved_account</a>(@arx);
@@ -384,15 +390,30 @@ Only called for testnets and e2e tests.
     arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>,
     core_resources_auth_key: <a href="../../std/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
 ) {
-    <b>let</b> (burn_cap, mint_cap) = <a href="arx_coin.md#0x1_arx_coin_initialize">arx_coin::initialize</a>(arx);
+	// Initialize <a href="coin.md#0x1_coin">coin</a> capabilities.
+    <b>let</b> (arx_burn_cap, arx_mint_cap) = <a href="arx_coin.md#0x1_arx_coin_initialize">arx_coin::initialize</a>(arx);
+	<b>let</b> (nox_burn_cap, nox_mint_cap) = <a href="nox_coin.md#0x1_nox_coin_initialize">nox_coin::initialize</a>(arx);
+	<b>let</b> (lux_burn_cap, lux_mint_cap) = <a href="lux_coin.md#0x1_lux_coin_initialize">lux_coin::initialize</a>(arx);
+	<b>let</b> (xusd_burn_cap, xusd_mint_cap) = <a href="xusd_coin.md#0x1_xusd_coin_initialize">xusd_coin::initialize</a>(arx);
+	// TODO: Remove <a href="validator.md#0x1_validator">validator</a> mint capability.
     // Give `<a href="validator.md#0x1_validator">validator</a>` <b>module</b> MintCapability&lt;ArxCoin&gt; so it can mint rewards.
-    <a href="validator.md#0x1_validator_store_arx_coin_mint_cap">validator::store_arx_coin_mint_cap</a>(arx, mint_cap);
-    // Give <a href="transaction_fee.md#0x1_transaction_fee">transaction_fee</a> <b>module</b> BurnCapability&lt;ArxCoin&gt; so it can burn gas.
-    <a href="transaction_fee.md#0x1_transaction_fee_store_arx_coin_burn_cap">transaction_fee::store_arx_coin_burn_cap</a>(arx, burn_cap);
+    <a href="validator.md#0x1_validator_store_arx_coin_mint_cap">validator::store_arx_coin_mint_cap</a>(arx, arx_mint_cap);
+	// Give `<a href="moneta.md#0x1_moneta">moneta</a>` <b>module</b> MintCapability&lt;ArxCoin&gt; so it can mint `ARX`.
+	<a href="moneta.md#0x1_moneta_store_arx_coin_mint_cap">moneta::store_arx_coin_mint_cap</a>(arx, arx_mint_cap, arx_burn_cap);
+	// Give `<a href="moneta.md#0x1_moneta">moneta</a>` <b>module</b> MintCapability&lt;XUSD&gt; so it can mint `XUSD` (testing only).
+	<a href="moneta.md#0x1_moneta_store_xusd_coin_mint_cap">moneta::store_xusd_coin_mint_cap</a>(arx, xusd_mint_cap, xusd_burn_cap);
+    // Give `<a href="transaction_fee.md#0x1_transaction_fee">transaction_fee</a>` <b>module</b> BurnCapability&lt;ArxCoin&gt; so it can burn gas.
+    <a href="transaction_fee.md#0x1_transaction_fee_store_arx_coin_burn_cap">transaction_fee::store_arx_coin_burn_cap</a>(arx, arx_burn_cap);
+	// Give `<a href="solaris.md#0x1_solaris">solaris</a>` <b>module</b> seignorage capabilities.
+	<a href="solaris.md#0x1_solaris_store_seignorage_caps">solaris::store_seignorage_caps</a>(arx, lux_mint_cap, lux_burn_cap, nox_mint_cap, nox_burn_cap);
 
     <b>let</b> core_resources = <a href="account.md#0x1_account_create_account">account::create_account</a>(@core_resources);
     <a href="account.md#0x1_account_rotate_authentication_key_internal">account::rotate_authentication_key_internal</a>(&core_resources, core_resources_auth_key);
-    <a href="arx_coin.md#0x1_arx_coin_configure_accounts_for_test">arx_coin::configure_accounts_for_test</a>(arx, &core_resources, mint_cap);
+    <a href="arx_coin.md#0x1_arx_coin_configure_accounts_for_test">arx_coin::configure_accounts_for_test</a>(arx, &core_resources, arx_mint_cap);
+	<a href="xusd_coin.md#0x1_xusd_coin_configure_accounts_for_test">xusd_coin::configure_accounts_for_test</a>(arx, &core_resources, xusd_mint_cap);
+
+	<a href="subsidialis.md#0x1_subsidialis_initialize">subsidialis::initialize</a>(arx);
+	<a href="moneta.md#0x1_moneta_initialize_for_testing">moneta::initialize_for_testing</a>(arx);
 }
 </code></pre>
 
@@ -503,12 +524,18 @@ If it exists, it just returns the signer.
         i = i + 1;
     };
 
-    // Destroy open libras ability <b>to</b> mint coins now that we're done <b>with</b> setting up the initial
+    // Destroy arxs ability <b>to</b> mint coins now that we're done <b>with</b> setting up the initial
     // validators.
     <a href="arx_coin.md#0x1_arx_coin_destroy_mint_cap">arx_coin::destroy_mint_cap</a>(arx);
 
-	// Transition <b>to</b> the next epoch
+	// Transition <b>to</b> the next validation epoch
     <a href="validator.md#0x1_validator_on_new_epoch">validator::on_new_epoch</a>();
+
+	// Transition <b>to</b> the next <a href="moneta.md#0x1_moneta">moneta</a> epoch
+	<a href="moneta.md#0x1_moneta_on_new_epoch">moneta::on_new_epoch</a>();
+	// Transition <b>to</b> the next `ArxCoin` <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> epoch.
+	<a href="subsidialis.md#0x1_subsidialis_on_new_epoch">subsidialis::on_new_epoch</a>&lt;ArxCoin&gt;();
+	// Transition <b>to</b> the next `LP&lt;ArxCoin, XUSD&gt;` <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> epoch.
 }
 </code></pre>
 

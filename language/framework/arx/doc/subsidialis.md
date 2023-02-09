@@ -7,18 +7,25 @@
 
 -  [Resource `Subsidialis`](#0x1_subsidialis_Subsidialis)
 -  [Constants](#@Constants_0)
+-  [Function `initialize`](#0x1_subsidialis_initialize)
 -  [Function `join`](#0x1_subsidialis_join)
 -  [Function `leave`](#0x1_subsidialis_leave)
 -  [Function `on_new_epoch`](#0x1_subsidialis_on_new_epoch)
+-  [Function `distribute_mints`](#0x1_subsidialis_distribute_mints)
 -  [Function `get_dominus_state`](#0x1_subsidialis_get_dominus_state)
 -  [Function `find_dominus`](#0x1_subsidialis_find_dominus)
+-  [Function `get_total_active_power`](#0x1_subsidialis_get_total_active_power)
 -  [Function `assert_exists`](#0x1_subsidialis_assert_exists)
 
 
-<pre><code><b>use</b> <a href="../../std/doc/error.md#0x1_error">0x1::error</a>;
+<pre><code><b>use</b> <a href="arx_coin.md#0x1_arx_coin">0x1::arx_coin</a>;
+<b>use</b> <a href="coin.md#0x1_coin">0x1::coin</a>;
+<b>use</b> <a href="../../std/doc/error.md#0x1_error">0x1::error</a>;
 <b>use</b> <a href="../../std/doc/option.md#0x1_option">0x1::option</a>;
 <b>use</b> <a href="../../std/doc/signer.md#0x1_signer">0x1::signer</a>;
 <b>use</b> <a href="solaris.md#0x1_solaris">0x1::solaris</a>;
+<b>use</b> <a href="system_addresses.md#0x1_system_addresses">0x1::system_addresses</a>;
+<b>use</b> <a href="../../std/doc/uq64x64.md#0x1_uq64x64">0x1::uq64x64</a>;
 <b>use</b> <a href="../../std/doc/vector.md#0x1_vector">0x1::vector</a>;
 </code></pre>
 
@@ -154,6 +161,37 @@ The subsidialis was not initialized.
 
 
 
+<a name="0x1_subsidialis_initialize"></a>
+
+## Function `initialize`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_initialize">initialize</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_initialize">initialize</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>) {
+	<a href="system_addresses.md#0x1_system_addresses_assert_arx">system_addresses::assert_arx</a>(arx);
+	<b>move_to</b>(arx, <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a> {
+	    active: <a href="../../std/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
+	    pending_inactive: <a href="../../std/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
+	    pending_active: <a href="../../std/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
+	    total_active_power: 0,
+	    total_joining_power: 0,
+	});
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x1_subsidialis_join"></a>
 
 ## Function `join`
@@ -271,15 +309,21 @@ Triggers at reconfiguration. This function should not abort.
     <a href="../../std/doc/vector.md#0x1_vector_append_nondestructive">vector::append_nondestructive</a>(&<b>mut</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active, &<b>mut</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_active);
 
 	// Unlock pending_unlocked <a href="forma.md#0x1_forma">forma</a> coins within the solarii.
+	<b>let</b> subsidialis_lux_power = 0;
 	<b>let</b> i = 0;
 	<b>let</b> len = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_inactive);
 	<b>while</b> (i &lt; len) {
 	    <b>let</b> solaris_address = *<a href="../../std/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_inactive, i);
 	    <a href="solaris.md#0x1_solaris_on_subsidialis_deactivate">solaris::on_subsidialis_deactivate</a>&lt;CoinType&gt;(solaris_address);
+	    // Subtract the active lux power of the <a href="solaris.md#0x1_solaris">solaris</a> from the total active power.
+	    <b>let</b> active_lux_value = <a href="solaris.md#0x1_solaris_get_active_lux_value">solaris::get_active_lux_value</a>&lt;CoinType&gt;(solaris_address);
+	    subsidialis_lux_power = subsidialis_lux_power + active_lux_value;
 	    i = i + 1;
 	};
 	// Set pending_inactive <b>to</b> () since they have been deactivated.
 	<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_inactive = <a href="../../std/doc/vector.md#0x1_vector_empty">vector::empty</a>();
+	<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power =
+	    <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power - (subsidialis_lux_power <b>as</b> u128);
 
 	// Compute the total lux power and set joining power <b>to</b> 0.
 	<b>let</b> subsidialis_lux_power = 0;
@@ -293,7 +337,51 @@ Triggers at reconfiguration. This function should not abort.
 	};
 	// IMPORTANT: The total lux power *must* be set <b>to</b> 0 prior <b>to</b> calling `on_new_epoch` <b>with</b>
 	// different <a href="coin.md#0x1_coin">coin</a> types.
-	<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power = <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power + (subsidialis_lux_power <b>as</b> u128);
+	<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power =
+	    <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power + (subsidialis_lux_power <b>as</b> u128);
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_subsidialis_distribute_mints"></a>
+
+## Function `distribute_mints`
+
+Distribute moneta mints to the solaris set.
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_distribute_mints">distribute_mints</a>&lt;CoinType&gt;(coins: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;<a href="arx_coin.md#0x1_arx_coin_ArxCoin">arx_coin::ArxCoin</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_distribute_mints">distribute_mints</a>&lt;CoinType&gt;(coins: Coin&lt;ArxCoin&gt;) <b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a> {
+	<a href="subsidialis.md#0x1_subsidialis_assert_exists">assert_exists</a>();
+	<b>let</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> = <b>borrow_global</b>&lt;<a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>&gt;(@arx);
+	// FIXME: (downcasting) Update <a href="forma.md#0x1_forma">forma</a> rewards for each active member.
+	<b>let</b> total_power = (<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power <b>as</b> u64);
+	<b>let</b> i = 0;
+	<b>let</b> len = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active);
+	<b>while</b> (i &lt; len) {
+	    <b>let</b> solaris_address = *<a href="../../std/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active, i);
+	    // Compute the share which this active <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> is owed.
+	    <b>let</b> active_lux_value = <a href="solaris.md#0x1_solaris_get_active_lux_value">solaris::get_active_lux_value</a>&lt;CoinType&gt;(solaris_address);
+	    <b>let</b> active_lux_share = <a href="../../std/doc/uq64x64.md#0x1_uq64x64_decode">uq64x64::decode</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction">uq64x64::fraction</a>(active_lux_value, total_power));
+	    <b>let</b> coin_share = active_lux_share * <a href="coin.md#0x1_coin_value">coin::value</a>(&coins);
+	    <b>let</b> coins = <a href="coin.md#0x1_coin_extract">coin::extract</a>(&<b>mut</b> coins, coin_share);
+	    // Deposit the mints directly in the <a href="solaris.md#0x1_solaris">solaris</a> (owners) <a href="account.md#0x1_account">account</a>.
+	    <a href="coin.md#0x1_coin_deposit">coin::deposit</a>(solaris_address, coins);
+	    i = i + 1;
+	};
+	// Should fail <b>if</b> the mints were not rewarded fully.
+	<a href="coin.md#0x1_coin_destroy_zero">coin::destroy_zero</a>&lt;ArxCoin&gt;(coins);
 }
 </code></pre>
 
@@ -368,6 +456,34 @@ Finds the current status of a designated dominus by lock address.
         i = i + 1;
     };
     <a href="../../std/doc/option.md#0x1_option_none">option::none</a>()
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_subsidialis_get_total_active_power"></a>
+
+## Function `get_total_active_power`
+
+Get the total active lux power.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_get_total_active_power">get_total_active_power</a>&lt;CoinType&gt;(): u128
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_get_total_active_power">get_total_active_power</a>&lt;CoinType&gt;(): u128
+	<b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>
+{
+	<b>let</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> = <b>borrow_global</b>&lt;<a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>&gt;(@arx);
+	<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power
 }
 </code></pre>
 

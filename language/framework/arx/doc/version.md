@@ -126,8 +126,8 @@ Publishes the Version config.
     <a href="system_addresses.md#0x1_system_addresses_assert_arx">system_addresses::assert_arx</a>(arx);
 
     <b>move_to</b>(arx, <a href="version.md#0x1_version_Version">Version</a> { major: initial_version });
-    // Give open libra <a href="account.md#0x1_account">account</a> capability <b>to</b> call set <a href="version.md#0x1_version">version</a>. This allows on chain <a href="governance.md#0x1_governance">governance</a> <b>to</b>
-	// do it through control of the open libra <a href="account.md#0x1_account">account</a>.
+    // Give arx <a href="account.md#0x1_account">account</a> capability <b>to</b> call set <a href="version.md#0x1_version">version</a>. This allows on chain <a href="governance.md#0x1_governance">governance</a> <b>to</b>
+	// do it through control of the arx <a href="account.md#0x1_account">account</a>.
     <b>move_to</b>(arx, <a href="version.md#0x1_version_SetVersionCapability">SetVersionCapability</a> {});
 }
 </code></pre>

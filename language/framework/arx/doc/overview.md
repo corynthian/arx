@@ -34,6 +34,7 @@ This is the reference documentation of the Arx framework.
 -  [`0x1::guid`](guid.md#0x1_guid)
 -  [`0x1::liquidity_pool`](liquidity_pool.md#0x1_liquidity_pool)
 -  [`0x1::lux_coin`](lux_coin.md#0x1_lux_coin)
+-  [`0x1::moneta`](moneta.md#0x1_moneta)
 -  [`0x1::nox_coin`](nox_coin.md#0x1_nox_coin)
 -  [`0x1::object`](object.md#0x1_object)
 -  [`0x1::optional_aggregator`](optional_aggregator.md#0x1_optional_aggregator)
@@ -53,6 +54,7 @@ This is the reference documentation of the Arx framework.
 -  [`0x1::validator`](validator.md#0x1_validator)
 -  [`0x1::version`](version.md#0x1_version)
 -  [`0x1::voting`](voting.md#0x1_voting)
+-  [`0x1::xusd_coin`](xusd_coin.md#0x1_xusd_coin)
 
 
 [move-book]: https://move-language.github.io/move/introduction.html

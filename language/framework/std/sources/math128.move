@@ -28,7 +28,8 @@ module std::math128 {
     }
 
     /// Get square root of `y`.
-    /// Babylonian method (https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method)
+    /// Babylonian method
+    /// (https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method)
     public fun sqrt(y: u128): u64 {
         if (y < 4) {
             if (y == 0) {

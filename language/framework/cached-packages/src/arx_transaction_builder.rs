@@ -441,6 +441,23 @@ pub enum EntryFunctionCall {
     VersionSetVersion {
         major: u64,
     },
+
+    /// Only callable in tests and testnets where the core resources account exists.
+    /// Claim the delegated mint capability and destroy the delegated token.
+    XusdCoinClaimMintCapability {},
+
+    /// Only callable in tests and testnets where the core resources account exists.
+    /// Create delegated token for the address so the account could claim MintCapability later.
+    XusdCoinDelegateMintCapability {
+        to: AccountAddress,
+    },
+
+    /// Only callable in tests and testnets where the core resources account exists.
+    /// Create new coins and deposit them into dst_addr's account.
+    XusdCoinMint {
+        dst_addr: AccountAddress,
+        amount: u64,
+    },
 }
 
 impl EntryFunctionCall {
@@ -654,6 +671,9 @@ impl EntryFunctionCall {
             ),
             ValidatorWithdraw { withdraw_amount } => validator_withdraw(withdraw_amount),
             VersionSetVersion { major } => version_set_version(major),
+            XusdCoinClaimMintCapability {} => xusd_coin_claim_mint_capability(),
+            XusdCoinDelegateMintCapability { to } => xusd_coin_delegate_mint_capability(to),
+            XusdCoinMint { dst_addr, amount } => xusd_coin_mint(dst_addr, amount),
         }
     }
 
@@ -1813,6 +1833,60 @@ pub fn version_set_version(major: u64) -> TransactionPayload {
         vec![bcs::to_bytes(&major).unwrap()],
     ))
 }
+
+/// Only callable in tests and testnets where the core resources account exists.
+/// Claim the delegated mint capability and destroy the delegated token.
+pub fn xusd_coin_claim_mint_capability() -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("xusd_coin").to_owned(),
+        ),
+        ident_str!("claim_mint_capability").to_owned(),
+        vec![],
+        vec![],
+    ))
+}
+
+/// Only callable in tests and testnets where the core resources account exists.
+/// Create delegated token for the address so the account could claim MintCapability later.
+pub fn xusd_coin_delegate_mint_capability(to: AccountAddress) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("xusd_coin").to_owned(),
+        ),
+        ident_str!("delegate_mint_capability").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&to).unwrap()],
+    ))
+}
+
+/// Only callable in tests and testnets where the core resources account exists.
+/// Create new coins and deposit them into dst_addr's account.
+pub fn xusd_coin_mint(dst_addr: AccountAddress, amount: u64) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("xusd_coin").to_owned(),
+        ),
+        ident_str!("mint").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&dst_addr).unwrap(),
+            bcs::to_bytes(&amount).unwrap(),
+        ],
+    ))
+}
 mod decoder {
     use super::*;
     pub fn account_offer_rotation_capability(
@@ -2464,6 +2538,39 @@ mod decoder {
             None
         }
     }
+
+    pub fn xusd_coin_claim_mint_capability(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(_script) = payload {
+            Some(EntryFunctionCall::XusdCoinClaimMintCapability {})
+        } else {
+            None
+        }
+    }
+
+    pub fn xusd_coin_delegate_mint_capability(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::XusdCoinDelegateMintCapability {
+                to: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn xusd_coin_mint(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::XusdCoinMint {
+                dst_addr: bcs::from_bytes(script.args().get(0)?).ok()?,
+                amount: bcs::from_bytes(script.args().get(1)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
 }
 
 type EntryFunctionDecoderMap = std::collections::HashMap<
@@ -2697,6 +2804,18 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "version_set_version".to_string(),
             Box::new(decoder::version_set_version),
+        );
+        map.insert(
+            "xusd_coin_claim_mint_capability".to_string(),
+            Box::new(decoder::xusd_coin_claim_mint_capability),
+        );
+        map.insert(
+            "xusd_coin_delegate_mint_capability".to_string(),
+            Box::new(decoder::xusd_coin_delegate_mint_capability),
+        );
+        map.insert(
+            "xusd_coin_mint".to_string(),
+            Box::new(decoder::xusd_coin_mint),
         );
         map
     });

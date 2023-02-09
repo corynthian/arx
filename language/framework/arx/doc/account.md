@@ -711,7 +711,7 @@ The signer capability offer doesn't exist at the given address
 
 <a name="0x1_account_ENO_VALID_OPEN_LIBRA_RESERVED_ADDRESS"></a>
 
-Address to create is not a valid reserved address for open libra
+Address to create is not a valid reserved address for arx
 
 
 <pre><code><b>const</b> <a href="account.md#0x1_account_ENO_VALID_OPEN_LIBRA_RESERVED_ADDRESS">ENO_VALID_OPEN_LIBRA_RESERVED_ADDRESS</a>: u64 = 11;

@@ -35,7 +35,7 @@ spec arx::system_addresses {
         aborts_if !is_framework_reserved_address(signer::address_of(account));
     }
 
-    /// Specifies that a function aborts if the account does not have the open libra address.
+    /// Specifies that a function aborts if the account does not have the arx address.
     spec schema AbortsIfNotOpenLibra {
         account: signer;
         aborts_if signer::address_of(account) != @arx with error::PERMISSION_DENIED;

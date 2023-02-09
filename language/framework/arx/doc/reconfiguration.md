@@ -202,7 +202,7 @@ A <code>ModifyConfigCapability</code> is in a different state than was expected
 ## Function `initialize`
 
 Only called during genesis.
-Publishes <code><a href="reconfiguration.md#0x1_reconfiguration_Configuration">Configuration</a></code> resource. Can only be invoked by the open libraaccount, and only a
+Publishes <code><a href="reconfiguration.md#0x1_reconfiguration_Configuration">Configuration</a></code> resource. Can only be invoked by the arxaccount, and only a
 single time in Genesis.
 
 

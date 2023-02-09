@@ -24,8 +24,18 @@ module std::curves {
         is_uncorrelated<Curve>() || is_stable<Curve>()
     }
 
-    /// Checks if `Curve` is valid (means correct type used).
+    /// Ensures `Curve` is valid (means correct type used).
     public fun assert_valid_curve<Curve>() {
         assert!(is_valid_curve<Curve>(), EINVALID_CURVE);
     }    
+
+    /// Ensures  `Curve` is `Stable`.
+    public fun assert_stable_curve<Curve>() {
+	assert!(is_stable<Curve>(), EINVALID_CURVE);
+    }
+
+    /// Ensures  `Curve` is `Uncorrelated`.
+    public fun assert_uncorrelated_curve<Curve>() {
+	assert!(is_uncorrelated<Curve>(), EINVALID_CURVE);
+    }
 }

@@ -274,7 +274,7 @@ initial validators and accounts have been initialized during genesis.
 
 ## Function `configure_accounts_for_test`
 
-Can only be called during genesis for tests to grant mint capability to open libra and core
+Can only be called during genesis for tests to grant mint capability to arx and core
 resources accounts.
 
 

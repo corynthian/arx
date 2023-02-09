@@ -115,7 +115,8 @@ Implements: <code>x</code> * <code>y</code> / <code>z</code>.
 ## Function `sqrt`
 
 Get square root of <code>y</code>.
-Babylonian method (https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method)
+Babylonian method
+(https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method)
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="math128.md#0x1_math128_sqrt">sqrt</a>(y: u128): u64

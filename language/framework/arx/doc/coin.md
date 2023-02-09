@@ -659,7 +659,7 @@ or disallow upgradability of total supply.
 ## Function `initialize_aggregatable_coin`
 
 Creates a new aggregatable coin with value overflowing on <code>limit</code>. Note that this function can
-only be called by the open libra (0x1) account for now becuase of <code>create_aggregator</code>.
+only be called by the arx (0x1) account for now becuase of <code>create_aggregator</code>.
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="coin.md#0x1_coin_initialize_aggregatable_coin">initialize_aggregatable_coin</a>&lt;CoinType&gt;(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>): <a href="coin.md#0x1_coin_AggregatableCoin">coin::AggregatableCoin</a>&lt;CoinType&gt;
