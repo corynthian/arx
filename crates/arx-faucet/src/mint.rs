@@ -16,8 +16,7 @@ use serde::Deserialize;
 use std::{convert::Infallible, fmt, sync::Arc};
 use warp::{Filter, Rejection, Reply};
 
-// static MINTER_SCRIPT: &[u8] = include_bytes!("minter.mv");
-static MINTER_SCRIPT: &[u8] = b"0000";
+static MINTER_SCRIPT: &[u8] = include_bytes!("../minter/script.mv");
 
 pub fn mint_routes(
     service: Arc<Service>,
