@@ -17,8 +17,11 @@ Incitamentum definitionis
 
 <pre><code><b>use</b> <a href="arx_coin.md#0x1_arx_coin">0x1::arx_coin</a>;
 <b>use</b> <a href="chain_status.md#0x1_chain_status">0x1::chain_status</a>;
+<b>use</b> <a href="../../std/doc/curves.md#0x1_curves">0x1::curves</a>;
 <b>use</b> <a href="../../std/doc/error.md#0x1_error">0x1::error</a>;
+<b>use</b> <a href="lp_coin.md#0x1_lp_coin">0x1::lp_coin</a>;
 <b>use</b> <a href="system_addresses.md#0x1_system_addresses">0x1::system_addresses</a>;
+<b>use</b> <a href="xusd_coin.md#0x1_xusd_coin">0x1::xusd_coin</a>;
 </code></pre>
 
 
@@ -93,6 +96,7 @@ Called at genesis and required in order to initialize the validator set.
 	<a href="chain_status.md#0x1_chain_status_assert_genesis">chain_status::assert_genesis</a>();
 
 	<a href="forma.md#0x1_forma_register">register</a>&lt;ArxCoin&gt;(<a href="arx_account.md#0x1_arx_account">arx_account</a>, 1, 1);
+	<a href="forma.md#0x1_forma_register">register</a>&lt;LP&lt;ArxCoin, XUSDCoin, Stable&gt;&gt;(<a href="arx_account.md#0x1_arx_account">arx_account</a>, 1, 1);
 }
 </code></pre>
 

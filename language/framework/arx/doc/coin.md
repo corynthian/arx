@@ -1427,14 +1427,24 @@ Same as <code>initialize</code> but supply can be initialized to parallelizable 
         <a href="../../std/doc/error.md#0x1_error_already_exists">error::already_exists</a>(<a href="coin.md#0x1_coin_ECOIN_INFO_ALREADY_PUBLISHED">ECOIN_INFO_ALREADY_PUBLISHED</a>),
     );
 
-    <b>assert</b>!(<a href="../../std/doc/string.md#0x1_string_length">string::length</a>(&name) &lt;= <a href="coin.md#0x1_coin_MAX_COIN_NAME_LENGTH">MAX_COIN_NAME_LENGTH</a>, <a href="../../std/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="coin.md#0x1_coin_ECOIN_NAME_TOO_LONG">ECOIN_NAME_TOO_LONG</a>));
-    <b>assert</b>!(<a href="../../std/doc/string.md#0x1_string_length">string::length</a>(&symbol) &lt;= <a href="coin.md#0x1_coin_MAX_COIN_SYMBOL_LENGTH">MAX_COIN_SYMBOL_LENGTH</a>, <a href="../../std/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="coin.md#0x1_coin_ECOIN_SYMBOL_TOO_LONG">ECOIN_SYMBOL_TOO_LONG</a>));
+    <b>assert</b>!(
+	    <a href="../../std/doc/string.md#0x1_string_length">string::length</a>(&name) &lt;= <a href="coin.md#0x1_coin_MAX_COIN_NAME_LENGTH">MAX_COIN_NAME_LENGTH</a>,
+	    <a href="../../std/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="coin.md#0x1_coin_ECOIN_NAME_TOO_LONG">ECOIN_NAME_TOO_LONG</a>)
+	);
+    <b>assert</b>!(
+	    <a href="../../std/doc/string.md#0x1_string_length">string::length</a>(&symbol) &lt;= <a href="coin.md#0x1_coin_MAX_COIN_SYMBOL_LENGTH">MAX_COIN_SYMBOL_LENGTH</a>,
+	    <a href="../../std/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="coin.md#0x1_coin_ECOIN_SYMBOL_TOO_LONG">ECOIN_SYMBOL_TOO_LONG</a>)
+	);
 
     <b>let</b> coin_info = <a href="coin.md#0x1_coin_CoinInfo">CoinInfo</a>&lt;CoinType&gt; {
         name,
         symbol,
         decimals,
-        supply: <b>if</b> (monitor_supply) { <a href="../../std/doc/option.md#0x1_option_some">option::some</a>(<a href="optional_aggregator.md#0x1_optional_aggregator_new">optional_aggregator::new</a>(<a href="coin.md#0x1_coin_MAX_U128">MAX_U128</a>, parallelizable)) } <b>else</b> { <a href="../../std/doc/option.md#0x1_option_none">option::none</a>() },
+        supply: <b>if</b> (monitor_supply) {
+		<a href="../../std/doc/option.md#0x1_option_some">option::some</a>(<a href="optional_aggregator.md#0x1_optional_aggregator_new">optional_aggregator::new</a>(<a href="coin.md#0x1_coin_MAX_U128">MAX_U128</a>, parallelizable))
+	    } <b>else</b> {
+		<a href="../../std/doc/option.md#0x1_option_none">option::none</a>()
+	    },
     };
     <b>move_to</b>(<a href="account.md#0x1_account">account</a>, coin_info);
 

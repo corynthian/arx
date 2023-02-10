@@ -56,7 +56,8 @@ aggregator (parallelizable) or via normal integers.
 
 ## Struct `Integer`
 
-Wrapper around integer with a custom overflow limit. Supports add, subtract and read just like <code>Aggregator</code>.
+Wrapper around integer with a custom overflow limit. Supports add, subtract and read just like
+<code>Aggregator</code>.
 
 
 <pre><code><b>struct</b> <a href="optional_aggregator.md#0x1_optional_aggregator_Integer">Integer</a> <b>has</b> store

@@ -7,22 +7,21 @@ A feeless liquidity pool implementation. Initialised at genesis and subsequently
 Arx governance account.
 
 
--  [Struct `LP`](#0x1_liquidity_pool_LP)
 -  [Resource `LiquidityPool`](#0x1_liquidity_pool_LiquidityPool)
--  [Struct `Delta`](#0x1_liquidity_pool_Delta)
 -  [Resource `LiquidityPoolEvents`](#0x1_liquidity_pool_LiquidityPoolEvents)
 -  [Struct `PoolCreatedEvent`](#0x1_liquidity_pool_PoolCreatedEvent)
 -  [Struct `LiquidityAddedEvent`](#0x1_liquidity_pool_LiquidityAddedEvent)
 -  [Struct `LiquidityRemovedEvent`](#0x1_liquidity_pool_LiquidityRemovedEvent)
+-  [Struct `LiquidityBurnedEvent`](#0x1_liquidity_pool_LiquidityBurnedEvent)
 -  [Struct `SwapEvent`](#0x1_liquidity_pool_SwapEvent)
 -  [Struct `OracleUpdateEvent`](#0x1_liquidity_pool_OracleUpdateEvent)
 -  [Constants](#@Constants_0)
--  [Function `get_delta_sign`](#0x1_liquidity_pool_get_delta_sign)
--  [Function `get_delta_value`](#0x1_liquidity_pool_get_delta_value)
 -  [Function `register`](#0x1_liquidity_pool_register)
 -  [Function `mint`](#0x1_liquidity_pool_mint)
 -  [Function `burn`](#0x1_liquidity_pool_burn)
+-  [Function `burn_destructive`](#0x1_liquidity_pool_burn_destructive)
 -  [Function `swap`](#0x1_liquidity_pool_swap)
+-  [Function `set_reconfiguration_timestamp`](#0x1_liquidity_pool_set_reconfiguration_timestamp)
 -  [Function `update_oracle`](#0x1_liquidity_pool_update_oracle)
 -  [Function `get_last_epoch_delta`](#0x1_liquidity_pool_get_last_epoch_delta)
 -  [Function `assert_lp_value_increase`](#0x1_liquidity_pool_assert_lp_value_increase)
@@ -37,10 +36,11 @@ Arx governance account.
 <b>use</b> <a href="coin.md#0x1_coin">0x1::coin</a>;
 <b>use</b> <a href="coin_type.md#0x1_coin_type">0x1::coin_type</a>;
 <b>use</b> <a href="../../std/doc/curves.md#0x1_curves">0x1::curves</a>;
+<b>use</b> <a href="delta.md#0x1_delta">0x1::delta</a>;
 <b>use</b> <a href="event.md#0x1_event">0x1::event</a>;
+<b>use</b> <a href="lp_coin.md#0x1_lp_coin">0x1::lp_coin</a>;
 <b>use</b> <a href="../../std/doc/math128.md#0x1_math128">0x1::math128</a>;
 <b>use</b> <a href="../../std/doc/math64.md#0x1_math64">0x1::math64</a>;
-<b>use</b> <a href="reconfiguration.md#0x1_reconfiguration">0x1::reconfiguration</a>;
 <b>use</b> <a href="../../std/doc/stable_curve.md#0x1_stable_curve">0x1::stable_curve</a>;
 <b>use</b> <a href="../../std/doc/string.md#0x1_string">0x1::string</a>;
 <b>use</b> <a href="system_addresses.md#0x1_system_addresses">0x1::system_addresses</a>;
@@ -50,34 +50,6 @@ Arx governance account.
 </code></pre>
 
 
-
-<a name="0x1_liquidity_pool_LP"></a>
-
-## Struct `LP`
-
-LP coin type.
-
-
-<pre><code><b>struct</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;
-</code></pre>
-
-
-
-<details>
-<summary>Fields</summary>
-
-
-<dl>
-<dt>
-<code>dummy_field: bool</code>
-</dt>
-<dd>
-
-</dd>
-</dl>
-
-
-</details>
 
 <a name="0x1_liquidity_pool_LiquidityPool"></a>
 
@@ -107,6 +79,12 @@ Liquidity pool with cumulative price aggregation.
 </dt>
 <dd>
  The amount of coin <code>Y</code> held in reserves.
+</dd>
+<dt>
+<code>reconfiguration_timestamp: u64</code>
+</dt>
+<dd>
+ The reconfiguration timestamp.
 </dd>
 <dt>
 <code>last_epoch_timestamp: u64</code>
@@ -175,13 +153,13 @@ Liquidity pool with cumulative price aggregation.
  The time weighted average reserves of <code>Y</code>.
 </dd>
 <dt>
-<code>lp_mint_cap: <a href="coin.md#0x1_coin_MintCapability">coin::MintCapability</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">liquidity_pool::LP</a>&lt;X, Y, Curve&gt;&gt;</code>
+<code>lp_mint_cap: <a href="coin.md#0x1_coin_MintCapability">coin::MintCapability</a>&lt;<a href="lp_coin.md#0x1_lp_coin_LP">lp_coin::LP</a>&lt;X, Y, Curve&gt;&gt;</code>
 </dt>
 <dd>
  The liquidity pools mint capability.
 </dd>
 <dt>
-<code>lp_burn_cap: <a href="coin.md#0x1_coin_BurnCapability">coin::BurnCapability</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">liquidity_pool::LP</a>&lt;X, Y, Curve&gt;&gt;</code>
+<code>lp_burn_cap: <a href="coin.md#0x1_coin_BurnCapability">coin::BurnCapability</a>&lt;<a href="lp_coin.md#0x1_lp_coin_LP">lp_coin::LP</a>&lt;X, Y, Curve&gt;&gt;</code>
 </dt>
 <dd>
  The liquidity pools burn capability.
@@ -197,40 +175,6 @@ Liquidity pool with cumulative price aggregation.
 </dt>
 <dd>
  The scaling factor of coin <code>Y</code>.
-</dd>
-</dl>
-
-
-</details>
-
-<a name="0x1_liquidity_pool_Delta"></a>
-
-## Struct `Delta`
-
-Represents the time weighted average reserve of X in the last epoch.
-
-
-<pre><code><b>struct</b> <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> <b>has</b> drop
-</code></pre>
-
-
-
-<details>
-<summary>Fields</summary>
-
-
-<dl>
-<dt>
-<code>sign: u64</code>
-</dt>
-<dd>
- Whether X > Y, Y > X or X = Y
-</dd>
-<dt>
-<code>value: u64</code>
-</dt>
-<dd>
- The cumulative difference in X vs Y
 </dd>
 </dl>
 
@@ -268,6 +212,12 @@ Liquidity pool events.
 </dd>
 <dt>
 <code>liquidity_removed_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityRemovedEvent">liquidity_pool::LiquidityRemovedEvent</a>&lt;X, Y, Curve&gt;&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>liquidity_burned_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityBurnedEvent">liquidity_pool::LiquidityBurnedEvent</a>&lt;X, Y, Curve&gt;&gt;</code>
 </dt>
 <dd>
 
@@ -397,6 +347,34 @@ Liquidity was removed from an existing pool.
 
 </details>
 
+<a name="0x1_liquidity_pool_LiquidityBurnedEvent"></a>
+
+## Struct `LiquidityBurnedEvent`
+
+Liquidity was burned destructively.
+
+
+<pre><code><b>struct</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityBurnedEvent">LiquidityBurnedEvent</a>&lt;X, Y, Curve&gt; <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>lp_tokens_burned: u64</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
 <a name="0x1_liquidity_pool_SwapEvent"></a>
 
 ## Struct `SwapEvent`
@@ -510,36 +488,6 @@ This error should never occur.
 
 
 
-<a name="0x1_liquidity_pool_DELTA_EQUAL"></a>
-
-Delta zero
-
-
-<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_EQUAL">DELTA_EQUAL</a>: u64 = 0;
-</code></pre>
-
-
-
-<a name="0x1_liquidity_pool_DELTA_NEGATIVE"></a>
-
-Delta negative sign
-
-
-<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_NEGATIVE">DELTA_NEGATIVE</a>: u64 = 2;
-</code></pre>
-
-
-
-<a name="0x1_liquidity_pool_DELTA_POSITIVE"></a>
-
-Delta positive sign
-
-
-<pre><code><b>const</b> <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_POSITIVE">DELTA_POSITIVE</a>: u64 = 1;
-</code></pre>
-
-
-
 <a name="0x1_liquidity_pool_EINSUFFICIENT_INITIAL_LIQUIDITY"></a>
 
 When not enough liquidity is minted.
@@ -630,54 +578,6 @@ Minimum liquidity.
 
 
 
-<a name="0x1_liquidity_pool_get_delta_sign"></a>
-
-## Function `get_delta_sign`
-
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_delta_sign">get_delta_sign</a>(delta: &<a href="liquidity_pool.md#0x1_liquidity_pool_Delta">liquidity_pool::Delta</a>): u64
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_delta_sign">get_delta_sign</a>(delta: &<a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a>): u64 {
-	delta.sign
-}
-</code></pre>
-
-
-
-</details>
-
-<a name="0x1_liquidity_pool_get_delta_value"></a>
-
-## Function `get_delta_value`
-
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_delta_value">get_delta_value</a>(delta: &<a href="liquidity_pool.md#0x1_liquidity_pool_Delta">liquidity_pool::Delta</a>): u64
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_delta_value">get_delta_value</a>(delta: &<a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a>): u64 {
-	delta.value
-}
-</code></pre>
-
-
-
-</details>
-
 <a name="0x1_liquidity_pool_register"></a>
 
 ## Function `register`
@@ -713,7 +613,7 @@ Register a liquidity pool for pair <code>X:Y</code>. This function is only calla
 
 	<b>let</b> (lp_name, lp_symbol) = <a href="coin_type.md#0x1_coin_type_generate_lp_name_and_symbol">coin_type::generate_lp_name_and_symbol</a>&lt;X, Y, Curve&gt;();
 	<b>let</b> (lp_burn_cap, lp_freeze_cap, lp_mint_cap) =
-	    <a href="coin.md#0x1_coin_initialize">coin::initialize</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;&gt;(
+	    <a href="coin.md#0x1_coin_initialize">coin::initialize</a>&lt;LP&lt;X, Y, Curve&gt;&gt;(
 		<a href="arx_account.md#0x1_arx_account">arx_account</a>,
 		lp_name,
 		lp_symbol,
@@ -733,7 +633,8 @@ Register a liquidity pool for pair <code>X:Y</code>. This function is only calla
 	<b>let</b> pool = <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt; {
 	    coin_x_reserve: <a href="coin.md#0x1_coin_zero">coin::zero</a>&lt;X&gt;(),
 	    coin_y_reserve: <a href="coin.md#0x1_coin_zero">coin::zero</a>&lt;Y&gt;(),
-	    last_epoch_timestamp: <a href="reconfiguration.md#0x1_reconfiguration_last_reconfiguration_time">reconfiguration::last_reconfiguration_time</a>(),
+	    reconfiguration_timestamp: 0,
+	    last_epoch_timestamp: 0,
 	    last_block_timestamp: 0,
 	    last_price_x_cumulative: 0,
 	    last_price_y_cumulative: 0,
@@ -755,6 +656,7 @@ Register a liquidity pool for pair <code>X:Y</code>. This function is only calla
         pool_created_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(<a href="arx_account.md#0x1_arx_account">arx_account</a>),
         liquidity_added_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(<a href="arx_account.md#0x1_arx_account">arx_account</a>),
         liquidity_removed_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(<a href="arx_account.md#0x1_arx_account">arx_account</a>),
+	    liquidity_burned_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(<a href="arx_account.md#0x1_arx_account">arx_account</a>),
         swap_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(<a href="arx_account.md#0x1_arx_account">arx_account</a>),
         oracle_update_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(<a href="arx_account.md#0x1_arx_account">arx_account</a>),
 	};
@@ -777,10 +679,10 @@ Register a liquidity pool for pair <code>X:Y</code>. This function is only calla
 Mint new liquidity. Permissionless.
 * <code>coin_x</code> - coin X to add to the liquidity reserves.
 * <code>coin_y</code> - coin Y to add to the liquidity reserves.
-Returns LP coins: <code>Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;&gt;</code>.
+Returns LP coins: <code>Coin&lt;LP&lt;X, Y, Curve&gt;&gt;</code>.
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_mint">mint</a>&lt;X, Y, Curve&gt;(coin_x: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;X&gt;, coin_y: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;Y&gt;): <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">liquidity_pool::LP</a>&lt;X, Y, Curve&gt;&gt;
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_mint">mint</a>&lt;X, Y, Curve&gt;(coin_x: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;X&gt;, coin_y: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;Y&gt;): <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;<a href="lp_coin.md#0x1_lp_coin_LP">lp_coin::LP</a>&lt;X, Y, Curve&gt;&gt;
 </code></pre>
 
 
@@ -789,13 +691,13 @@ Returns LP coins: <code>Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_mint">mint</a>&lt;X, Y, Curve&gt;(coin_x: Coin&lt;X&gt;, coin_y: Coin&lt;Y&gt;): Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;&gt;
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_mint">mint</a>&lt;X, Y, Curve&gt;(coin_x: Coin&lt;X&gt;, coin_y: Coin&lt;Y&gt;): Coin&lt;LP&lt;X, Y, Curve&gt;&gt;
 	<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>, <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a>
 {
 	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
 	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
 
-	<b>let</b> lp_coins_total = <a href="coin_type.md#0x1_coin_type_supply">coin_type::supply</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;&gt;();
+	<b>let</b> lp_coins_total = <a href="coin_type.md#0x1_coin_type_supply">coin_type::supply</a>&lt;LP&lt;X, Y, Curve&gt;&gt;();
 
 	<b>let</b> pool = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
 	<b>let</b> x_reserve_size = <a href="coin.md#0x1_coin_value">coin::value</a>(&pool.coin_x_reserve);
@@ -826,7 +728,7 @@ Returns LP coins: <code>Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP
 	<a href="coin.md#0x1_coin_merge">coin::merge</a>(&<b>mut</b> pool.coin_x_reserve, coin_x);
 	<a href="coin.md#0x1_coin_merge">coin::merge</a>(&<b>mut</b> pool.coin_y_reserve, coin_y);
 
-	<b>let</b> lp_coins = <a href="coin.md#0x1_coin_mint">coin::mint</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;&gt;(provided_liq, &pool.lp_mint_cap);
+	<b>let</b> lp_coins = <a href="coin.md#0x1_coin_mint">coin::mint</a>&lt;LP&lt;X, Y, Curve&gt;&gt;(provided_liq, &pool.lp_mint_cap);
 
 	<a href="liquidity_pool.md#0x1_liquidity_pool_update_oracle">update_oracle</a>&lt;X, Y, Curve&gt;(pool, x_reserve_size, y_reserve_size);
 
@@ -855,7 +757,7 @@ Returns LP coins: <code>Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP
 Burn liquidity coins (LP) and get back X and Y from its reserves. Permissionless.
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_burn">burn</a>&lt;X, Y, Curve&gt;(lp_coins: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">liquidity_pool::LP</a>&lt;X, Y, Curve&gt;&gt;): (<a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;X&gt;, <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;Y&gt;)
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_burn">burn</a>&lt;X, Y, Curve&gt;(lp_coins: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;<a href="lp_coin.md#0x1_lp_coin_LP">lp_coin::LP</a>&lt;X, Y, Curve&gt;&gt;): (<a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;X&gt;, <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;Y&gt;)
 </code></pre>
 
 
@@ -864,7 +766,7 @@ Burn liquidity coins (LP) and get back X and Y from its reserves. Permissionless
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_burn">burn</a>&lt;X, Y, Curve&gt;(lp_coins: Coin&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;&gt;): (Coin&lt;X&gt;, Coin&lt;Y&gt;)
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_burn">burn</a>&lt;X, Y, Curve&gt;(lp_coins: Coin&lt;LP&lt;X, Y, Curve&gt;&gt;): (Coin&lt;X&gt;, Coin&lt;Y&gt;)
 <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>, <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a> {
 	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
 	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
@@ -873,13 +775,21 @@ Burn liquidity coins (LP) and get back X and Y from its reserves. Permissionless
 
 	<b>let</b> pool = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
 
-	<b>let</b> lp_coins_total = <a href="coin_type.md#0x1_coin_type_supply">coin_type::supply</a>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LP">LP</a>&lt;X, Y, Curve&gt;&gt;();
+	<b>let</b> lp_coins_total = <a href="coin_type.md#0x1_coin_type_supply">coin_type::supply</a>&lt;LP&lt;X, Y, Curve&gt;&gt;();
 	<b>let</b> x_reserve_val = <a href="coin.md#0x1_coin_value">coin::value</a>(&pool.coin_x_reserve);
 	<b>let</b> y_reserve_val = <a href="coin.md#0x1_coin_value">coin::value</a>(&pool.coin_y_reserve);
 
 	// Compute x, y <a href="coin.md#0x1_coin">coin</a> values for provided lp_coins value
-	<b>let</b> x_to_return_val = <a href="../../std/doc/math128.md#0x1_math128_mul_div">math128::mul_div</a>((burned_lp_coins_val <b>as</b> u128), (x_reserve_val <b>as</b> u128), lp_coins_total);
-	<b>let</b> y_to_return_val = <a href="../../std/doc/math128.md#0x1_math128_mul_div">math128::mul_div</a>((burned_lp_coins_val <b>as</b> u128), (y_reserve_val <b>as</b> u128), lp_coins_total);
+	<b>let</b> x_to_return_val = <a href="../../std/doc/math128.md#0x1_math128_mul_div">math128::mul_div</a>(
+	    (burned_lp_coins_val <b>as</b> u128),
+	    (x_reserve_val <b>as</b> u128),
+	    lp_coins_total
+	);
+	<b>let</b> y_to_return_val = <a href="../../std/doc/math128.md#0x1_math128_mul_div">math128::mul_div</a>(
+	    (burned_lp_coins_val <b>as</b> u128),
+	    (y_reserve_val <b>as</b> u128),
+	    lp_coins_total
+	);
 	<b>assert</b>!(x_to_return_val &gt; 0 && y_to_return_val &gt; 0, <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_BURN_VALUES">EINVALID_BURN_VALUES</a>);
 
 	// Withdraw values from reserves
@@ -899,6 +809,46 @@ Burn liquidity coins (LP) and get back X and Y from its reserves. Permissionless
 	    });
 
 	(x_coin_to_return, y_coin_to_return)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_liquidity_pool_burn_destructive"></a>
+
+## Function `burn_destructive`
+
+Burn liquidity coins whilst leaving the reserves intact. Used in genesis.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_burn_destructive">burn_destructive</a>&lt;X, Y, Curve&gt;(lp_coins: <a href="coin.md#0x1_coin_Coin">coin::Coin</a>&lt;<a href="lp_coin.md#0x1_lp_coin_LP">lp_coin::LP</a>&lt;X, Y, Curve&gt;&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_burn_destructive">burn_destructive</a>&lt;X, Y, Curve&gt;(lp_coins: Coin&lt;LP&lt;X, Y, Curve&gt;&gt;)
+	<b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>, <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a>
+{
+	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
+	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
+
+	<b>let</b> burned_lp_coins_val = <a href="coin.md#0x1_coin_value">coin::value</a>(&lp_coins);
+
+	<b>let</b> pool = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	<a href="coin.md#0x1_coin_burn">coin::burn</a>(lp_coins, &pool.lp_burn_cap);
+
+	<b>let</b> lp_events = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+	    &<b>mut</b> lp_events.liquidity_burned_events,
+	    <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityBurnedEvent">LiquidityBurnedEvent</a>&lt;X, Y, Curve&gt; {
+		lp_tokens_burned: burned_lp_coins_val,
+	    });
 }
 </code></pre>
 
@@ -978,6 +928,32 @@ Swap coins (may swap both x and y at the same time). Permissionless.
 
 </details>
 
+<a name="0x1_liquidity_pool_set_reconfiguration_timestamp"></a>
+
+## Function `set_reconfiguration_timestamp`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_set_reconfiguration_timestamp">set_reconfiguration_timestamp</a>&lt;X, Y, Curve&gt;(ts: u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_set_reconfiguration_timestamp">set_reconfiguration_timestamp</a>&lt;X, Y, Curve&gt;(ts: u64) <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>
+{
+	<b>let</b> pool = <b>borrow_global_mut</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx);
+	pool.reconfiguration_timestamp = ts;
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x1_liquidity_pool_update_oracle"></a>
 
 ## Function `update_oracle`
@@ -999,12 +975,13 @@ Update the cumulative prices (decentralised price oracle).
 	x_reserve: u64,
 	y_reserve: u64
 ) <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPoolEvents">LiquidityPoolEvents</a> {
-	<b>let</b> last_epoch_timestamp = <a href="reconfiguration.md#0x1_reconfiguration_last_reconfiguration_time">reconfiguration::last_reconfiguration_time</a>();
-	<b>if</b> (last_epoch_timestamp &gt; pool.last_epoch_timestamp) {
+	// The <a href="reconfiguration.md#0x1_reconfiguration">reconfiguration</a> <b>module</b> sets the `pool.reconfiguration_timestamp` in order <b>to</b> avoid a
+	// cyclic dependency <b>with</b> the liqudity pool.
+	<b>if</b> (pool.reconfiguration_timestamp &gt; pool.last_epoch_timestamp) {
 	    // Reset the number of time samples taken <b>to</b> 0.
 	    pool.epoch_samples = 0;
 	    // Set the pools last epoch <a href="timestamp.md#0x1_timestamp">timestamp</a> <b>to</b> the new epoch.
-	    pool.last_epoch_timestamp = last_epoch_timestamp;
+	    pool.last_epoch_timestamp = pool.reconfiguration_timestamp;
 	};
 
 	<b>let</b> last_block_timestamp = pool.last_block_timestamp;
@@ -1071,7 +1048,7 @@ Update the cumulative prices (decentralised price oracle).
 Get the time weighted average excess / shortage of <code>X</code> relative to <code>Y</code>.
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_last_epoch_delta">get_last_epoch_delta</a>&lt;X, Y, Curve&gt;(): <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">liquidity_pool::Delta</a>
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_last_epoch_delta">get_last_epoch_delta</a>&lt;X, Y, Curve&gt;(): <a href="delta.md#0x1_delta_Delta">delta::Delta</a>
 </code></pre>
 
 
@@ -1080,7 +1057,7 @@ Get the time weighted average excess / shortage of <code>X</code> relative to <c
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_last_epoch_delta">get_last_epoch_delta</a>&lt;X, Y, Curve&gt;(): <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a> {
+<pre><code><b>public</b> <b>fun</b> <a href="liquidity_pool.md#0x1_liquidity_pool_get_last_epoch_delta">get_last_epoch_delta</a>&lt;X, Y, Curve&gt;(): Delta <b>acquires</b> <a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a> {
 	<b>assert</b>!(<a href="coin_type.md#0x1_coin_type_preserves_ordering">coin_type::preserves_ordering</a>&lt;X, Y&gt;(), <a href="liquidity_pool.md#0x1_liquidity_pool_EINVALID_ORDERING">EINVALID_ORDERING</a>);
 	<b>assert</b>!(<b>exists</b>&lt;<a href="liquidity_pool.md#0x1_liquidity_pool_LiquidityPool">LiquidityPool</a>&lt;X, Y, Curve&gt;&gt;(@arx), <a href="liquidity_pool.md#0x1_liquidity_pool_EPOOL_DOES_NOT_EXIST">EPOOL_DOES_NOT_EXIST</a>);
 
@@ -1088,13 +1065,13 @@ Get the time weighted average excess / shortage of <code>X</code> relative to <c
 
 	// If there is an excess of X in reserves then the sign is negative
 	<b>if</b> (pool.epoch_twar_x &gt; pool.epoch_twar_y) {
-	    <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> { sign: <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_NEGATIVE">DELTA_NEGATIVE</a>, value: ((pool.epoch_twar_x - pool.epoch_twar_y) <b>as</b> u64) }
+	    <a href="delta.md#0x1_delta_create">delta::create</a>(2, ((pool.epoch_twar_x - pool.epoch_twar_y) <b>as</b> u64))
 	} <b>else</b> <b>if</b> (pool.epoch_twar_y &gt; pool.epoch_twar_x) {
 	    // If there is a shortage of X in reserves then the sign is positive
-	    <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> { sign: <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_POSITIVE">DELTA_POSITIVE</a>, value: ((pool.epoch_twar_y - pool.epoch_twar_x) <b>as</b> u64) }
+	    <a href="delta.md#0x1_delta_create">delta::create</a>(1, ((pool.epoch_twar_y - pool.epoch_twar_x) <b>as</b> u64))
 	} <b>else</b> {
 	    // Otherwise sign is equal
-	    <a href="liquidity_pool.md#0x1_liquidity_pool_Delta">Delta</a> { sign: <a href="liquidity_pool.md#0x1_liquidity_pool_DELTA_EQUAL">DELTA_EQUAL</a>, value: 0 }
+	    <a href="delta.md#0x1_delta_create">delta::create</a>(0, 0)
 	}
 }
 </code></pre>

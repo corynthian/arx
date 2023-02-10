@@ -6,7 +6,7 @@
 
 
 -  [Struct `AccountMap`](#0x1_genesis_AccountMap)
--  [Struct `ExistingAccountMap`](#0x1_genesis_ExistingAccountMap)
+-  [Struct `DominusConfiguration`](#0x1_genesis_DominusConfiguration)
 -  [Struct `ValidatorConfiguration`](#0x1_genesis_ValidatorConfiguration)
 -  [Struct `ValidatorConfigurationWithCommission`](#0x1_genesis_ValidatorConfigurationWithCommission)
 -  [Constants](#@Constants_0)
@@ -16,6 +16,8 @@
 -  [Function `create_accounts`](#0x1_genesis_create_accounts)
 -  [Function `create_account`](#0x1_genesis_create_account)
 -  [Function `create_initialize_validators_with_commission`](#0x1_genesis_create_initialize_validators_with_commission)
+-  [Function `create_initialize_domini`](#0x1_genesis_create_initialize_domini)
+-  [Function `create_initialize_dominus`](#0x1_genesis_create_initialize_dominus)
 -  [Function `create_initialize_validators`](#0x1_genesis_create_initialize_validators)
 -  [Function `create_initialize_validator`](#0x1_genesis_create_initialize_validator)
 -  [Function `initialize_validator`](#0x1_genesis_initialize_validator)
@@ -32,10 +34,13 @@
 <b>use</b> <a href="coin.md#0x1_coin">0x1::coin</a>;
 <b>use</b> <a href="consensus_config.md#0x1_consensus_config">0x1::consensus_config</a>;
 <b>use</b> <a href="create_signer.md#0x1_create_signer">0x1::create_signer</a>;
+<b>use</b> <a href="../../std/doc/curves.md#0x1_curves">0x1::curves</a>;
 <b>use</b> <a href="../../std/doc/error.md#0x1_error">0x1::error</a>;
 <b>use</b> <a href="../../std/doc/features.md#0x1_features">0x1::features</a>;
+<b>use</b> <a href="forma.md#0x1_forma">0x1::forma</a>;
 <b>use</b> <a href="gas_schedule.md#0x1_gas_schedule">0x1::gas_schedule</a>;
 <b>use</b> <a href="governance.md#0x1_governance">0x1::governance</a>;
+<b>use</b> <a href="lp_coin.md#0x1_lp_coin">0x1::lp_coin</a>;
 <b>use</b> <a href="lux_coin.md#0x1_lux_coin">0x1::lux_coin</a>;
 <b>use</b> <a href="moneta.md#0x1_moneta">0x1::moneta</a>;
 <b>use</b> <a href="nox_coin.md#0x1_nox_coin">0x1::nox_coin</a>;
@@ -89,14 +94,13 @@
 
 </details>
 
-<a name="0x1_genesis_ExistingAccountMap"></a>
+<a name="0x1_genesis_DominusConfiguration"></a>
 
-## Struct `ExistingAccountMap`
-
-Map containing accounts which existed pre-genesis.
+## Struct `DominusConfiguration`
 
 
-<pre><code><b>struct</b> <a href="genesis.md#0x1_genesis_ExistingAccountMap">ExistingAccountMap</a> <b>has</b> <b>copy</b>, drop
+
+<pre><code><b>struct</b> <a href="genesis.md#0x1_genesis_DominusConfiguration">DominusConfiguration</a> <b>has</b> <b>copy</b>, drop
 </code></pre>
 
 
@@ -107,13 +111,13 @@ Map containing accounts which existed pre-genesis.
 
 <dl>
 <dt>
-<code>accounts: <a href="../../std/doc/vector.md#0x1_vector">vector</a>&lt;<b>address</b>&gt;</code>
+<code>owner_address: <b>address</b></code>
 </dt>
 <dd>
 
 </dd>
 <dt>
-<code>allocations: <a href="../../std/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;</code>
+<code>allocation_amount: u64</code>
 </dt>
 <dd>
 
@@ -412,8 +416,12 @@ Only called for testnets and e2e tests.
     <a href="arx_coin.md#0x1_arx_coin_configure_accounts_for_test">arx_coin::configure_accounts_for_test</a>(arx, &core_resources, arx_mint_cap);
 	<a href="xusd_coin.md#0x1_xusd_coin_configure_accounts_for_test">xusd_coin::configure_accounts_for_test</a>(arx, &core_resources, xusd_mint_cap);
 
-	<a href="subsidialis.md#0x1_subsidialis_initialize">subsidialis::initialize</a>(arx);
+	// Initialises the required liquidity pool and mints some initial liquidity.
 	<a href="moneta.md#0x1_moneta_initialize_for_testing">moneta::initialize_for_testing</a>(arx);
+	// Registers the required <a href="forma.md#0x1_forma">forma</a> types for the creation of <a href="solaris.md#0x1_solaris">solaris</a>.
+	<a href="forma.md#0x1_forma_initialize">forma::initialize</a>(arx);
+	// Initialises an empty <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> set so that domini can be added.
+	<a href="subsidialis.md#0x1_subsidialis_initialize">subsidialis::initialize</a>(arx);
 }
 </code></pre>
 
@@ -530,12 +538,76 @@ If it exists, it just returns the signer.
 
 	// Transition <b>to</b> the next validation epoch
     <a href="validator.md#0x1_validator_on_new_epoch">validator::on_new_epoch</a>();
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_genesis_create_initialize_domini"></a>
+
+## Function `create_initialize_domini`
+
+Sets up the initial members of the subsidialis.
+
+
+<pre><code><b>fun</b> <a href="genesis.md#0x1_genesis_create_initialize_domini">create_initialize_domini</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, domini: <a href="../../std/doc/vector.md#0x1_vector">vector</a>&lt;<a href="genesis.md#0x1_genesis_DominusConfiguration">genesis::DominusConfiguration</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="genesis.md#0x1_genesis_create_initialize_domini">create_initialize_domini</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, domini: <a href="../../std/doc/vector.md#0x1_vector">vector</a>&lt;<a href="genesis.md#0x1_genesis_DominusConfiguration">DominusConfiguration</a>&gt;) {
+	<b>let</b> i = 0;
+	<b>let</b> num_domini = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(&domini);
+	<b>while</b> (i &lt; num_domini) {
+	    <b>let</b> dominus = <a href="../../std/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&domini, i);
+	    <a href="genesis.md#0x1_genesis_create_initialize_dominus">create_initialize_dominus</a>(arx, dominus);
+	    i = i + 1;
+	};
 
 	// Transition <b>to</b> the next <a href="moneta.md#0x1_moneta">moneta</a> epoch
 	<a href="moneta.md#0x1_moneta_on_new_epoch">moneta::on_new_epoch</a>();
 	// Transition <b>to</b> the next `ArxCoin` <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> epoch.
 	<a href="subsidialis.md#0x1_subsidialis_on_new_epoch">subsidialis::on_new_epoch</a>&lt;ArxCoin&gt;();
 	// Transition <b>to</b> the next `LP&lt;ArxCoin, XUSD&gt;` <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> epoch.
+	<a href="subsidialis.md#0x1_subsidialis_on_new_epoch">subsidialis::on_new_epoch</a>&lt;LP&lt;ArxCoin, XUSDCoin, Stable&gt;&gt;();
+	// TODO: Transition <b>to</b> the next <a href="senatus.md#0x1_senatus">senatus</a> epoch.
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_genesis_create_initialize_dominus"></a>
+
+## Function `create_initialize_dominus`
+
+
+
+<pre><code><b>fun</b> <a href="genesis.md#0x1_genesis_create_initialize_dominus">create_initialize_dominus</a>(arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, dominus: &<a href="genesis.md#0x1_genesis_DominusConfiguration">genesis::DominusConfiguration</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="genesis.md#0x1_genesis_create_initialize_dominus">create_initialize_dominus</a>(
+	arx: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>,
+	dominus: &<a href="genesis.md#0x1_genesis_DominusConfiguration">DominusConfiguration</a>,
+) {
+	<b>let</b> owner = &<a href="genesis.md#0x1_genesis_create_account">create_account</a>(arx, dominus.owner_address, dominus.allocation_amount);
+	// Initialise the <a href="solaris.md#0x1_solaris">solaris</a> allocation.
+	<a href="solaris.md#0x1_solaris_initialize_allocation">solaris::initialize_allocation</a>&lt;ArxCoin&gt;(owner, dominus.allocation_amount);
+	// Join the <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.
+	<a href="subsidialis.md#0x1_subsidialis_join">subsidialis::join</a>&lt;ArxCoin&gt;(owner);
 }
 </code></pre>
 

@@ -6,6 +6,11 @@
 
 
 -  [Resource `Subsidialis`](#0x1_subsidialis_Subsidialis)
+-  [Resource `SubsidialisEvents`](#0x1_subsidialis_SubsidialisEvents)
+-  [Struct `SubsidialisInitializedEvent`](#0x1_subsidialis_SubsidialisInitializedEvent)
+-  [Struct `SubsidialisJoinEvent`](#0x1_subsidialis_SubsidialisJoinEvent)
+-  [Struct `SubsidialisLeaveEvent`](#0x1_subsidialis_SubsidialisLeaveEvent)
+-  [Struct `SubsidialisReconfigurationEvent`](#0x1_subsidialis_SubsidialisReconfigurationEvent)
 -  [Constants](#@Constants_0)
 -  [Function `initialize`](#0x1_subsidialis_initialize)
 -  [Function `join`](#0x1_subsidialis_join)
@@ -18,9 +23,11 @@
 -  [Function `assert_exists`](#0x1_subsidialis_assert_exists)
 
 
-<pre><code><b>use</b> <a href="arx_coin.md#0x1_arx_coin">0x1::arx_coin</a>;
+<pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
+<b>use</b> <a href="arx_coin.md#0x1_arx_coin">0x1::arx_coin</a>;
 <b>use</b> <a href="coin.md#0x1_coin">0x1::coin</a>;
 <b>use</b> <a href="../../std/doc/error.md#0x1_error">0x1::error</a>;
+<b>use</b> <a href="event.md#0x1_event">0x1::event</a>;
 <b>use</b> <a href="../../std/doc/option.md#0x1_option">0x1::option</a>;
 <b>use</b> <a href="../../std/doc/signer.md#0x1_signer">0x1::signer</a>;
 <b>use</b> <a href="solaris.md#0x1_solaris">0x1::solaris</a>;
@@ -80,6 +87,164 @@ The set of solaris managed by the @arx subsidialis.
 </dt>
 <dd>
  The total lux waiting to join.
+</dd>
+</dl>
+
+
+</details>
+
+<a name="0x1_subsidialis_SubsidialisEvents"></a>
+
+## Resource `SubsidialisEvents`
+
+Stores the event handles of the subsidialis.
+
+
+<pre><code><b>struct</b> <a href="subsidialis.md#0x1_subsidialis_SubsidialisEvents">SubsidialisEvents</a> <b>has</b> key
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>subsidialis_initialized_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="subsidialis.md#0x1_subsidialis_SubsidialisInitializedEvent">subsidialis::SubsidialisInitializedEvent</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>subsidialis_join_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="subsidialis.md#0x1_subsidialis_SubsidialisJoinEvent">subsidialis::SubsidialisJoinEvent</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>subsidialis_leave_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="subsidialis.md#0x1_subsidialis_SubsidialisLeaveEvent">subsidialis::SubsidialisLeaveEvent</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>subsidialis_reconfiguration_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="subsidialis.md#0x1_subsidialis_SubsidialisReconfigurationEvent">subsidialis::SubsidialisReconfigurationEvent</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a name="0x1_subsidialis_SubsidialisInitializedEvent"></a>
+
+## Struct `SubsidialisInitializedEvent`
+
+Triggers when the subsidialis has been initialized.
+
+
+<pre><code><b>struct</b> <a href="subsidialis.md#0x1_subsidialis_SubsidialisInitializedEvent">SubsidialisInitializedEvent</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>dummy_field: bool</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a name="0x1_subsidialis_SubsidialisJoinEvent"></a>
+
+## Struct `SubsidialisJoinEvent`
+
+Triggers when a solaris owner becomes a dominus by joining the subsidialis.
+
+
+<pre><code><b>struct</b> <a href="subsidialis.md#0x1_subsidialis_SubsidialisJoinEvent">SubsidialisJoinEvent</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>solaris_address: <b>address</b></code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a name="0x1_subsidialis_SubsidialisLeaveEvent"></a>
+
+## Struct `SubsidialisLeaveEvent`
+
+Triggers when a subsidialis member revokes their membership.
+
+
+<pre><code><b>struct</b> <a href="subsidialis.md#0x1_subsidialis_SubsidialisLeaveEvent">SubsidialisLeaveEvent</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>solaris_address: <b>address</b></code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a name="0x1_subsidialis_SubsidialisReconfigurationEvent"></a>
+
+## Struct `SubsidialisReconfigurationEvent`
+
+Triggers when a new epoch causes the subsidialis to reconfigure itself.
+
+
+<pre><code><b>struct</b> <a href="subsidialis.md#0x1_subsidialis_SubsidialisReconfigurationEvent">SubsidialisReconfigurationEvent</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>total_active_power: u128</code>
+</dt>
+<dd>
+
 </dd>
 </dl>
 
@@ -185,6 +350,17 @@ The subsidialis was not initialized.
 	    total_active_power: 0,
 	    total_joining_power: 0,
 	});
+	<b>let</b> subsidialis_events = <a href="subsidialis.md#0x1_subsidialis_SubsidialisEvents">SubsidialisEvents</a> {
+	    subsidialis_initialized_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(arx),
+	    subsidialis_join_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(arx),
+	    subsidialis_leave_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(arx),
+	    subsidialis_reconfiguration_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(arx),
+	};
+	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+	    &<b>mut</b> subsidialis_events.subsidialis_initialized_events,
+	    <a href="subsidialis.md#0x1_subsidialis_SubsidialisInitializedEvent">SubsidialisInitializedEvent</a> {},
+	);
+	<b>move_to</b>(arx, subsidialis_events);
 }
 </code></pre>
 
@@ -210,13 +386,13 @@ It is necessary to join the subsidialis in order to receive seignorage rewards.
 
 
 <pre><code><b>public</b> entry <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_join">join</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
-	<b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>
+	<b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>, <a href="subsidialis.md#0x1_subsidialis_SubsidialisEvents">SubsidialisEvents</a>
 {
 	<b>let</b> solaris_address = <a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(owner);
 	// Ensure a <a href="solaris.md#0x1_solaris">solaris</a> <b>exists</b> at the supplied <b>address</b>.
 	<a href="solaris.md#0x1_solaris_assert_exists">solaris::assert_exists</a>&lt;CoinType&gt;(solaris_address);
 
-	// TODO: Ensure the <a href="solaris.md#0x1_solaris">solaris</a> is not in senatus.
+	// TODO: Ensure the <a href="solaris.md#0x1_solaris">solaris</a> is not in <a href="senatus.md#0x1_senatus">senatus</a>.
 
 	// Ensure the <a href="solaris.md#0x1_solaris">solaris</a> is not already an active dominus.
 	<b>assert</b>!(
@@ -227,6 +403,14 @@ It is necessary to join the subsidialis in order to receive seignorage rewards.
 	// Push the <a href="solaris.md#0x1_solaris">solaris</a> <b>address</b> <b>to</b> the pending active set.
 	<b>let</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> = <b>borrow_global_mut</b>&lt;<a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>&gt;(@arx);
 	<a href="../../std/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_active, solaris_address);
+
+	<b>let</b> subsidialis_events = <b>borrow_global_mut</b>&lt;<a href="subsidialis.md#0x1_subsidialis_SubsidialisEvents">SubsidialisEvents</a>&gt;(@arx);
+	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+	    &<b>mut</b> subsidialis_events.subsidialis_join_events,
+	    <a href="subsidialis.md#0x1_subsidialis_SubsidialisJoinEvent">SubsidialisJoinEvent</a> {
+		solaris_address,
+	    },
+	);
 }
 </code></pre>
 
@@ -252,7 +436,7 @@ It is necessary to leave the subsidialis in order for removed forma coins to bec
 
 
 <pre><code><b>public</b> entry <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_leave">leave</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
-	<b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>
+	<b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>, <a href="subsidialis.md#0x1_subsidialis_SubsidialisEvents">SubsidialisEvents</a>
 {
 	<b>let</b> solaris_address = <a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(owner);
 	// Ensure a <a href="solaris.md#0x1_solaris">solaris</a> <b>exists</b> at the supplied <b>address</b>.
@@ -267,6 +451,14 @@ It is necessary to leave the subsidialis in order for removed forma coins to bec
 	// Push the <a href="solaris.md#0x1_solaris">solaris</a> <b>address</b> <b>to</b> the pending inactive set.
 	<b>let</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> = <b>borrow_global_mut</b>&lt;<a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>&gt;(@arx);
 	<a href="../../std/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_inactive, solaris_address);
+
+	<b>let</b> subsidialis_events = <b>borrow_global_mut</b>&lt;<a href="subsidialis.md#0x1_subsidialis_SubsidialisEvents">SubsidialisEvents</a>&gt;(@arx);
+	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+	    &<b>mut</b> subsidialis_events.subsidialis_leave_events,
+	    <a href="subsidialis.md#0x1_subsidialis_SubsidialisLeaveEvent">SubsidialisLeaveEvent</a> {
+		solaris_address,
+	    },
+	);
 }
 </code></pre>
 
@@ -291,15 +483,15 @@ Triggers at reconfiguration. This function should not abort.
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_on_new_epoch">on_new_epoch</a>&lt;CoinType&gt;()
-	<b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>
+	<b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>, <a href="subsidialis.md#0x1_subsidialis_SubsidialisEvents">SubsidialisEvents</a>
 {
 	<a href="subsidialis.md#0x1_subsidialis_assert_exists">assert_exists</a>();
 	<b>let</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> = <b>borrow_global_mut</b>&lt;<a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>&gt;(@arx);
 
 	// Update seignorage rewards for each active member.
 	<b>let</b> i = 0;
-	<b>let</b> len = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active);
-	<b>while</b> (i &lt; len) {
+	<b>let</b> vlen = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active);
+	<b>while</b> (i &lt; vlen) {
 	    <b>let</b> solaris_address = *<a href="../../std/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active, i);
 	    <a href="solaris.md#0x1_solaris_on_subsidialis_update">solaris::on_subsidialis_update</a>&lt;CoinType&gt;(solaris_address);
 	    i = i + 1;
@@ -311,8 +503,8 @@ Triggers at reconfiguration. This function should not abort.
 	// Unlock pending_unlocked <a href="forma.md#0x1_forma">forma</a> coins within the solarii.
 	<b>let</b> subsidialis_lux_power = 0;
 	<b>let</b> i = 0;
-	<b>let</b> len = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_inactive);
-	<b>while</b> (i &lt; len) {
+	<b>let</b> vlen = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_inactive);
+	<b>while</b> (i &lt; vlen) {
 	    <b>let</b> solaris_address = *<a href="../../std/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_inactive, i);
 	    <a href="solaris.md#0x1_solaris_on_subsidialis_deactivate">solaris::on_subsidialis_deactivate</a>&lt;CoinType&gt;(solaris_address);
 	    // Subtract the active lux power of the <a href="solaris.md#0x1_solaris">solaris</a> from the total active power.
@@ -334,11 +526,20 @@ Triggers at reconfiguration. This function should not abort.
 	    <b>let</b> active_lux_value = <a href="solaris.md#0x1_solaris_get_active_lux_value">solaris::get_active_lux_value</a>&lt;CoinType&gt;(solaris_address);
 	    subsidialis_lux_power = subsidialis_lux_power + active_lux_value;
 	    // TODO: renew_timelock();
+	    i = i + 1;
 	};
 	// IMPORTANT: The total lux power *must* be set <b>to</b> 0 prior <b>to</b> calling `on_new_epoch` <b>with</b>
 	// different <a href="coin.md#0x1_coin">coin</a> types.
 	<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power =
 	    <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power + (subsidialis_lux_power <b>as</b> u128);
+
+	<b>let</b> subsidialis_events = <b>borrow_global_mut</b>&lt;<a href="subsidialis.md#0x1_subsidialis_SubsidialisEvents">SubsidialisEvents</a>&gt;(@arx);
+	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+	    &<b>mut</b> subsidialis_events.subsidialis_reconfiguration_events,
+	    <a href="subsidialis.md#0x1_subsidialis_SubsidialisReconfigurationEvent">SubsidialisReconfigurationEvent</a> {
+		total_active_power: <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power,
+	    },
+	);
 }
 </code></pre>
 
@@ -368,8 +569,8 @@ Distribute moneta mints to the solaris set.
 	// FIXME: (downcasting) Update <a href="forma.md#0x1_forma">forma</a> rewards for each active member.
 	<b>let</b> total_power = (<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_active_power <b>as</b> u64);
 	<b>let</b> i = 0;
-	<b>let</b> len = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active);
-	<b>while</b> (i &lt; len) {
+	<b>let</b> vlen = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active);
+	<b>while</b> (i &lt; vlen) {
 	    <b>let</b> solaris_address = *<a href="../../std/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active, i);
 	    // Compute the share which this active <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> is owed.
 	    <b>let</b> active_lux_value = <a href="solaris.md#0x1_solaris_get_active_lux_value">solaris::get_active_lux_value</a>&lt;CoinType&gt;(solaris_address);
@@ -443,12 +644,12 @@ Finds the current status of a designated dominus by lock address.
 
 <pre><code><b>fun</b> <a href="subsidialis.md#0x1_subsidialis_find_dominus">find_dominus</a>(v: &<a href="../../std/doc/vector.md#0x1_vector">vector</a>&lt;<b>address</b>&gt;, <b>address</b>: <b>address</b>): Option&lt;u64&gt; {
     <b>let</b> i = 0;
-    <b>let</b> len = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(v);
+    <b>let</b> vlen = <a href="../../std/doc/vector.md#0x1_vector_length">vector::length</a>(v);
     <b>while</b> ({
         <b>spec</b> {
             <b>invariant</b> !(<b>exists</b> j in 0..i: v[j] == <b>address</b>);
         };
-        i &lt; len
+        i &lt; vlen
     }) {
         <b>if</b> (*<a href="../../std/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(v, i) == <b>address</b>) {
             <b>return</b> <a href="../../std/doc/option.md#0x1_option_some">option::some</a>(i)

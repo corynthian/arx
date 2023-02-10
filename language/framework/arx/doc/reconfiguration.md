@@ -30,16 +30,23 @@ to synchronize configuration changes for the validators.
 
 
 <pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
+<b>use</b> <a href="arx_coin.md#0x1_arx_coin">0x1::arx_coin</a>;
 <b>use</b> <a href="chain_status.md#0x1_chain_status">0x1::chain_status</a>;
+<b>use</b> <a href="../../std/doc/curves.md#0x1_curves">0x1::curves</a>;
 <b>use</b> <a href="../../std/doc/error.md#0x1_error">0x1::error</a>;
 <b>use</b> <a href="event.md#0x1_event">0x1::event</a>;
 <b>use</b> <a href="../../std/doc/features.md#0x1_features">0x1::features</a>;
+<b>use</b> <a href="liquidity_pool.md#0x1_liquidity_pool">0x1::liquidity_pool</a>;
+<b>use</b> <a href="lp_coin.md#0x1_lp_coin">0x1::lp_coin</a>;
+<b>use</b> <a href="moneta.md#0x1_moneta">0x1::moneta</a>;
 <b>use</b> <a href="../../std/doc/signer.md#0x1_signer">0x1::signer</a>;
 <b>use</b> <a href="storage_gas.md#0x1_storage_gas">0x1::storage_gas</a>;
+<b>use</b> <a href="subsidialis.md#0x1_subsidialis">0x1::subsidialis</a>;
 <b>use</b> <a href="system_addresses.md#0x1_system_addresses">0x1::system_addresses</a>;
 <b>use</b> <a href="timestamp.md#0x1_timestamp">0x1::timestamp</a>;
 <b>use</b> <a href="transaction_fee.md#0x1_transaction_fee">0x1::transaction_fee</a>;
 <b>use</b> <a href="validator.md#0x1_validator">0x1::validator</a>;
+<b>use</b> <a href="xusd_coin.md#0x1_xusd_coin">0x1::xusd_coin</a>;
 </code></pre>
 
 
@@ -380,6 +387,13 @@ Signal validators to start using new configuration. Must be called from friend c
     // Compute the new <a href="validator.md#0x1_validator">validator</a> set and distribute rewards (and maybe) transaction fees.
     <a href="validator.md#0x1_validator_on_new_epoch">validator::on_new_epoch</a>();
 
+	// Compute the new minting rewards and distribute <b>to</b> the <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>, <a href="senatus.md#0x1_senatus">senatus</a> and the danistae.
+	<a href="moneta.md#0x1_moneta_on_new_epoch">moneta::on_new_epoch</a>();
+	// Compute the seignorage rewards of the <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.
+	<a href="subsidialis.md#0x1_subsidialis_on_new_epoch">subsidialis::on_new_epoch</a>&lt;ArxCoin&gt;();
+	<a href="subsidialis.md#0x1_subsidialis_on_new_epoch">subsidialis::on_new_epoch</a>&lt;LP&lt;ArxCoin, XUSDCoin, Stable&gt;&gt;();
+	// TODO: Compute the seignorage rewards of the <a href="senatus.md#0x1_senatus">senatus</a>.
+
     <a href="storage_gas.md#0x1_storage_gas_on_reconfig">storage_gas::on_reconfig</a>();
 
     <b>assert</b>!(
@@ -391,6 +405,9 @@ Signal validators to start using new configuration. Must be called from friend c
         <b>assume</b> config_ref.epoch + 1 &lt;= MAX_U64;
     };
     config_ref.epoch = config_ref.epoch + 1;
+
+	// Update liquidity pool last epoch <a href="timestamp.md#0x1_timestamp">timestamp</a>
+	<a href="liquidity_pool.md#0x1_liquidity_pool_set_reconfiguration_timestamp">liquidity_pool::set_reconfiguration_timestamp</a>&lt;ArxCoin, XUSDCoin, Stable&gt;(current_time);
 
     <a href="event.md#0x1_event_emit_event">event::emit_event</a>&lt;<a href="reconfiguration.md#0x1_reconfiguration_NewEpochEvent">NewEpochEvent</a>&gt;(
         &<b>mut</b> config_ref.events,
