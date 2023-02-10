@@ -321,9 +321,10 @@ pub enum EntryFunctionCall {
         amount: u64,
     },
 
-    /// Initialises a new solaris assigned to the provided owner.
-    SolarisInitializeOwner {
+    /// Initialises a new solaris allocation.
+    SolarisInitializeAllocation {
         coin_type: TypeTag,
+        initial_allocation: u64,
     },
 
     /// Reactivate forma coins pending unlock.
@@ -615,7 +616,10 @@ impl EntryFunctionCall {
                 code,
             ),
             SolarisAddCoins { coin_type, amount } => solaris_add_coins(coin_type, amount),
-            SolarisInitializeOwner { coin_type } => solaris_initialize_owner(coin_type),
+            SolarisInitializeAllocation {
+                coin_type,
+                initial_allocation,
+            } => solaris_initialize_allocation(coin_type, initial_allocation),
             SolarisReactivateCoins { coin_type, amount } => {
                 solaris_reactivate_coins(coin_type, amount)
             },
@@ -1469,8 +1473,11 @@ pub fn solaris_add_coins(coin_type: TypeTag, amount: u64) -> TransactionPayload 
     ))
 }
 
-/// Initialises a new solaris assigned to the provided owner.
-pub fn solaris_initialize_owner(coin_type: TypeTag) -> TransactionPayload {
+/// Initialises a new solaris allocation.
+pub fn solaris_initialize_allocation(
+    coin_type: TypeTag,
+    initial_allocation: u64,
+) -> TransactionPayload {
     TransactionPayload::EntryFunction(EntryFunction::new(
         ModuleId::new(
             AccountAddress::new([
@@ -1479,9 +1486,9 @@ pub fn solaris_initialize_owner(coin_type: TypeTag) -> TransactionPayload {
             ]),
             ident_str!("solaris").to_owned(),
         ),
-        ident_str!("initialize_owner").to_owned(),
+        ident_str!("initialize_allocation").to_owned(),
         vec![coin_type],
-        vec![],
+        vec![bcs::to_bytes(&initial_allocation).unwrap()],
     ))
 }
 
@@ -2319,10 +2326,13 @@ mod decoder {
         }
     }
 
-    pub fn solaris_initialize_owner(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+    pub fn solaris_initialize_allocation(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
-            Some(EntryFunctionCall::SolarisInitializeOwner {
+            Some(EntryFunctionCall::SolarisInitializeAllocation {
                 coin_type: script.ty_args().get(0)?.clone(),
+                initial_allocation: bcs::from_bytes(script.args().get(0)?).ok()?,
             })
         } else {
             None
@@ -2726,8 +2736,8 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             Box::new(decoder::solaris_add_coins),
         );
         map.insert(
-            "solaris_initialize_owner".to_string(),
-            Box::new(decoder::solaris_initialize_owner),
+            "solaris_initialize_allocation".to_string(),
+            Box::new(decoder::solaris_initialize_allocation),
         );
         map.insert(
             "solaris_reactivate_coins".to_string(),
