@@ -11,6 +11,18 @@ use arx_keygen::KeyGen;
 use arx_types::{account_address::AccountAddress, transaction::authenticator::AuthenticationKey};
 use serde::{Deserialize, Serialize};
 
+#[derive(Deserialize, Serialize)]
+pub struct DominusPrivateIdentity {
+    pub account_address: AccountAddress,
+    pub account_private_key: Ed25519PrivateKey,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct DominusPublicIdentity {
+    pub account_address: AccountAddress,
+    pub account_public_key: Ed25519PublicKey,
+}
+
 /// Type for serializing private keys file
 #[derive(Deserialize, Serialize)]
 pub struct PrivateIdentity {
@@ -32,16 +44,41 @@ pub struct PublicIdentity {
     pub validator_network_public_key: Option<x25519::PublicKey>,
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct DominusIdentity {
+    pub private_identity: DominusPrivateIdentity,
+    pub public_identity: DominusPublicIdentity,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct ValidatorIdentity {
+    pub validator_identity: IdentityBlob,
+    pub vfn_identity: IdentityBlob,
+    pub private_identity: PrivateIdentity,
+    pub public_identity: PublicIdentity,
+}
+
 /// Generates objects used for a user in genesis
 pub fn generate_key_objects(
     keygen: &mut KeyGen,
-) -> anyhow::Result<(IdentityBlob, IdentityBlob, PrivateIdentity, PublicIdentity)> {
+) -> anyhow::Result<(DominusIdentity, ValidatorIdentity)> {
+    let dominus_key = ConfigKey::new(keygen.generate_ed25519_private_key());
     let account_key = ConfigKey::new(keygen.generate_ed25519_private_key());
     let consensus_key = ConfigKey::new(keygen.generate_bls12381_private_key());
     let validator_network_key = ConfigKey::new(keygen.generate_x25519_private_key()?);
     let full_node_network_key = ConfigKey::new(keygen.generate_x25519_private_key()?);
 
+    let dominus_address = AuthenticationKey::ed25519(&dominus_key.public_key()).derived_address();
     let account_address = AuthenticationKey::ed25519(&account_key.public_key()).derived_address();
+
+    let dominus_private_identity = DominusPrivateIdentity {
+        account_address: dominus_address,
+        account_private_key: dominus_key.private_key(),
+    };
+    let dominus_public_identity = DominusPublicIdentity {
+        account_address: dominus_address,
+        account_public_key: dominus_key.public_key(),
+    };
 
     // Build these for use later as node identity
     let validator_blob = IdentityBlob {
@@ -76,5 +113,16 @@ pub fn generate_key_objects(
         validator_network_public_key: Some(validator_network_key.public_key()),
     };
 
-    Ok((validator_blob, vfn_blob, private_identity, public_identity))
+    Ok((
+	DominusIdentity {
+	    private_identity: dominus_private_identity,
+	    public_identity: dominus_public_identity,
+	},
+	ValidatorIdentity {
+	    validator_identity: validator_blob,
+	    vfn_identity: vfn_blob,
+	    private_identity,
+	    public_identity,
+	}
+    ))
 }

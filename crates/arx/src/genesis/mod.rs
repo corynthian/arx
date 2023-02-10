@@ -25,7 +25,7 @@ use arx_genesis::{
     builder::GenesisConfiguration,
     config::{
         AccountBalanceMap, HostAndPort, Layout, StringOperatorConfiguration,
-        StringOwnerConfiguration, ValidatorConfiguration,
+        StringOwnerConfiguration, DominusConfiguration, ValidatorConfiguration,
     },
     mainnet::MainnetGenesisInfo,
     GenesisInfo,
@@ -240,11 +240,13 @@ pub fn fetch_genesis_info(git_options: GitOptions) -> CliTypedResult<GenesisInfo
         ));
     }
 
+    let domini = get_dominus_configs(&client, &layout, false).map_err(parse_error)?;
     let validators = get_validator_configs(&client, &layout, false).map_err(parse_error)?;
     let framework = client.get_framework()?;
     Ok(GenesisInfo::new(
         layout.chain_id,
         layout.root_key.unwrap(),
+	domini,
         validators,
         framework,
         &GenesisConfiguration {
@@ -271,6 +273,74 @@ fn parse_error(errors: Vec<String>) -> CliError {
         serde_yaml::to_string(&errors).unwrap()
     );
     CliError::UnexpectedError("Failed to parse genesis inputs".to_string())
+}
+
+fn get_dominus_configs(
+    client: &Client,
+    layout: &Layout,
+    is_mainnet: bool,
+) -> Result<Vec<DominusConfiguration>, Vec<String>> {
+    let mut domini = Vec::new();
+    let mut errors = Vec::new();
+    for user in &layout.users {
+        match get_dominus_config(client, user, is_mainnet) {
+            Ok(dominus) => {
+                domini.push(dominus);
+            },
+            Err(failure) => {
+                if let CliError::UnexpectedError(failure) = failure {
+                    errors.push(format!("{}: {}", user, failure));
+                } else {
+                    errors.push(format!("{}: {:?}", user, failure));
+                }
+            },
+        }
+    }
+    if errors.is_empty() {
+        Ok(domini)
+    } else {
+        Err(errors)
+    }
+}
+
+fn get_dominus_config(
+    client: &Client,
+    user: &str,
+    is_mainnet: bool,
+) -> CliTypedResult<DominusConfiguration> {
+    // Load a user's configuration files
+    let dir = PathBuf::from(user);
+    let owner_file = dir.join(OWNER_FILE);
+    let owner_file = owner_file.as_path();
+    let owner_config = client.get::<StringOwnerConfiguration>(owner_file)?;
+
+    // Check and convert fields in owner file
+    let owner_account_address: AccountAddress = parse_required_option(
+        &owner_config.owner_account_address,
+        owner_file,
+        "owner_account_address",
+        AccountAddressWithChecks::from_str,
+    )?
+    .into();
+    let owner_account_public_key = parse_required_option(
+        &owner_config.owner_account_public_key,
+        owner_file,
+        "owner_account_public_key",
+        |str| parse_key(ED25519_PUBLIC_KEY_LENGTH, str),
+    )?;
+
+    let allocation_amount = parse_required_option(
+        &owner_config.allocation_amount,
+        owner_file,
+        "allocation_amount",
+        u64::from_str,
+    )?;
+    
+    Ok(DominusConfiguration {
+	owner_account_address: owner_account_address.into(),
+	owner_account_public_key,
+	allocation_amount,
+    })
 }
 
 fn get_validator_configs(

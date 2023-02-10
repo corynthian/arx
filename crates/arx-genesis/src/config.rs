@@ -9,7 +9,7 @@ use arx_types::{
     network_address::{DnsName, NetworkAddress, Protocol},
     transaction::authenticator::AuthenticationKey,
 };
-use arx_vm_genesis::{AccountBalance, Validator, ValidatorWithCommissionRate};
+use arx_vm_genesis::{AccountBalance, Dominus, Validator, ValidatorWithCommissionRate};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     collections::{BTreeMap, HashSet},
@@ -98,6 +98,34 @@ impl Default for Layout {
             voting_power_increase_limit: 20,
             total_supply: None,
         }
+    }
+}
+
+/// Configuration needed to add a Dominus to genesis
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DominusConfiguration {
+    pub owner_account_address: AccountAddressWithChecks,
+    pub owner_account_public_key: Ed25519PublicKey,
+    pub allocation_amount: u64,
+}
+
+impl TryFrom<DominusConfiguration> for Dominus {
+    type Error = anyhow::Error;
+
+    fn try_from(config: DominusConfiguration) -> Result<Self, Self::Error> {
+	let auth_key = AuthenticationKey::ed25519(&config.owner_account_public_key);
+	let derived_address = auth_key.derived_address();
+	let owner_address = AccountAddress::from(config.owner_account_address);
+	if owner_address != derived_address {
+	    return Err(anyhow::Error::msg(format!(
+		"owner_account_address {} does not match account key derived address {}",
+		owner_address, derived_address
+	    )));
+	}
+	Ok(Dominus {
+	    owner_address,
+	    allocation_amount: config.allocation_amount,
+	})
     }
 }
 
@@ -346,6 +374,7 @@ pub struct StringOwnerConfiguration {
     pub vault_account_public_key: Option<String>,
     pub operator_account_address: Option<String>,
     pub operator_account_public_key: Option<String>,
+    pub allocation_amount: Option<String>,
     pub stake_amount: Option<String>,
     pub commission_percentage: Option<String>,
     pub join_during_genesis: Option<String>,

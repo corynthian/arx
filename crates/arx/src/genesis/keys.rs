@@ -66,13 +66,12 @@ impl CliCommand<Vec<PathBuf>> for GenerateKeys {
         check_if_file_exists(vfn_file.as_path(), self.prompt_options)?;
 
         let mut key_generator = self.rng_args.key_generator()?;
-        let (mut validator_blob, mut vfn_blob, private_identity, public_identity) =
-            generate_key_objects(&mut key_generator)?;
+	let (dominus_identity, mut validator_identity) = generate_key_objects(&mut key_generator)?;
 
         // Allow for the owner to be different than the operator
         if let Some(lock_address) = self.lock_address_args.lock_address {
-            validator_blob.account_address = Some(lock_address);
-            vfn_blob.account_address = Some(lock_address);
+            validator_identity.validator_identity.account_address = Some(lock_address);
+            validator_identity.vfn_identity.account_address = Some(lock_address);
         }
 
         // Create the directory if it doesn't exist
@@ -81,19 +80,23 @@ impl CliCommand<Vec<PathBuf>> for GenerateKeys {
         write_to_user_only_file(
             private_keys_file.as_path(),
             PRIVATE_KEYS_FILE,
-            to_yaml(&private_identity)?.as_bytes(),
+            to_yaml(&validator_identity.private_identity)?.as_bytes(),
         )?;
         write_to_user_only_file(
             public_keys_file.as_path(),
             PUBLIC_KEYS_FILE,
-            to_yaml(&public_identity)?.as_bytes(),
+            to_yaml(&validator_identity.public_identity)?.as_bytes(),
         )?;
         write_to_user_only_file(
             validator_file.as_path(),
             VALIDATOR_FILE,
-            to_yaml(&validator_blob)?.as_bytes(),
+            to_yaml(&validator_identity.validator_identity)?.as_bytes(),
         )?;
-        write_to_user_only_file(vfn_file.as_path(), VFN_FILE, to_yaml(&vfn_blob)?.as_bytes())?;
+        write_to_user_only_file(
+	    vfn_file.as_path(),
+	    VFN_FILE,
+	    to_yaml(&validator_identity.vfn_identity)?.as_bytes()
+	)?;
         Ok(vec![
             public_keys_file,
             private_keys_file,

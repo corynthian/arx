@@ -230,7 +230,7 @@ where
                 genesis_config.recurring_lockup_duration_secs = 7200;
             })))
             .with_randomize_first_validator_ports(random_ports);
-        let (root_key, _genesis, genesis_waypoint, validators) = builder.build(rng)?;
+        let (root_key, _genesis, genesis_waypoint, _domini, validators) = builder.build(rng)?;
 
         // Write the mint key to disk
         let serialized_keys = bcs::to_bytes(&root_key)?;

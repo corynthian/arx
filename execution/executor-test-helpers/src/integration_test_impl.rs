@@ -35,7 +35,7 @@ use std::sync::Arc;
 pub fn test_execution_with_storage_impl() -> Arc<ArxDB> {
     const B: u64 = 1_000_000_000;
 
-    let (genesis, validators) = arx_vm_genesis::test_genesis_change_set_and_validators(Some(1));
+    let (genesis, _domini, validators) = arx_vm_genesis::test_genesis_change_set_and_validators(Some(1));
     let genesis_txn = Transaction::GenesisTransaction(WriteSetPayload::Direct(genesis));
 
     let mut core_resources_account: LocalAccount = LocalAccount::new(

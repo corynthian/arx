@@ -11,7 +11,11 @@ pub mod mainnet;
 #[cfg(any(test, feature = "testing"))]
 pub mod test_utils;
 
-use crate::{builder::GenesisConfiguration, config::ValidatorConfiguration};
+use crate::{
+    builder::GenesisConfiguration,
+    config::DominusConfiguration,
+    config::ValidatorConfiguration,
+};
 use arx_config::config::{
     RocksdbConfigs, BUFFERED_STATE_TARGET_ITEMS, DEFAULT_MAX_NUM_NODES_PER_LRU_CACHE_SHARD,
     NO_OP_STORAGE_PRUNER_CONFIG,
@@ -28,7 +32,7 @@ use arx_types::{
     waypoint::Waypoint,
 };
 use arx_vm::ArxVM;
-use arx_vm_genesis::Validator;
+use arx_vm_genesis::{Dominus, Validator};
 use std::convert::TryInto;
 
 /// Holder object for all pieces needed to generate a genesis transaction
@@ -38,6 +42,8 @@ pub struct GenesisInfo {
     chain_id: ChainId,
     /// Key used for minting tokens
     root_key: Ed25519PublicKey,
+    /// Set of configurations for domini on the network
+    domini: Vec<Dominus>,
     /// Set of configurations for validators on the network
     validators: Vec<Validator>,
     /// Released framework packages
@@ -75,12 +81,17 @@ impl GenesisInfo {
     pub fn new(
         chain_id: ChainId,
         root_key: Ed25519PublicKey,
+	domini_configs: Vec<DominusConfiguration>,
         configs: Vec<ValidatorConfiguration>,
         framework: ReleaseBundle,
         genesis_config: &GenesisConfiguration,
     ) -> anyhow::Result<GenesisInfo> {
-        let mut validators = Vec::new();
+	let mut domini = Vec::new();
+	for config in domini_configs {
+	    domini.push(config.try_into()?)
+	}
 
+        let mut validators = Vec::new();
         for config in configs {
             validators.push(config.try_into()?)
         }
@@ -88,6 +99,7 @@ impl GenesisInfo {
         Ok(GenesisInfo {
             chain_id,
             root_key,
+	    domini,
             validators,
             framework,
             genesis: None,
@@ -119,6 +131,7 @@ impl GenesisInfo {
     fn generate_genesis_txn(&self) -> Transaction {
         arx_vm_genesis::encode_genesis_transaction(
             self.root_key.clone(),
+	    &self.domini,
             &self.validators,
             &self.framework,
             self.chain_id,

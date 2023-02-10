@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    config::ValidatorConfiguration,
-    keys::{generate_key_objects, PrivateIdentity, PublicIdentity},
+    config::{DominusConfiguration, ValidatorConfiguration},
+    keys::{generate_key_objects, DominusIdentity, ValidatorIdentity},
     GenesisInfo,
 };
 use anyhow::ensure;
 use arx_config::{
     config::{
-        DiscoveryMethod, Identity, IdentityBlob, InitialSafetyRulesConfig, NetworkConfig,
+        DiscoveryMethod, Identity, InitialSafetyRulesConfig, NetworkConfig,
         NodeConfig, OnDiskStorageConfig, PeerRole, RoleType, SafetyRulesService, SecureBackend,
         WaypointConfig,
     },
@@ -43,12 +43,93 @@ use std::{
     sync::Arc,
 };
 
+const DOMINUS_PRIVATE_IDENTITY: &str = "dominus-private-identity.yaml";
+const DOMINUS_PUBLIC_IDENTITY: &str = "dominus-public-identity.yaml";
 const VALIDATOR_IDENTITY: &str = "validator-identity.yaml";
 const VFN_IDENTITY: &str = "vfn-identity.yaml";
 const PRIVATE_IDENTITY: &str = "private-identity.yaml";
 const PUBLIC_IDENTITY: &str = "public-identity.yaml";
 const CONFIG_FILE: &str = "node.yaml";
 const GENESIS_BLOB: &str = "genesis.blob";
+
+/// Configuration to setup an initial dominus.
+#[derive(Debug, Clone)]
+pub struct DominusConfig {
+    pub name: String,
+    pub dir: PathBuf,
+    pub account_private_key: Option<ConfigKey<Ed25519PrivateKey>>,
+    pub genesis_allocation: u64,
+}
+
+impl DominusConfig {
+    pub fn new(
+	name: String,
+	base_dir: &Path,
+	initial_allocation: u64,
+    ) -> anyhow::Result<DominusConfig> {
+	let dir = base_dir.join(&name);
+	std::fs::create_dir_all(dir.as_path())?;
+	Ok(DominusConfig {
+	    name,
+	    dir,
+	    account_private_key: None,
+	    genesis_allocation: initial_allocation,
+	})
+    }
+
+    fn init_keys(&mut self, seed: Option<[u8; 32]>) -> anyhow::Result<()> {
+        let dominus_identity = self.get_key_objects(seed)?;
+        self.account_private_key = Some(ConfigKey::new(dominus_identity.private_identity.account_private_key));
+        Ok(())
+    }
+
+    /// Allows for on disk caching of already generated keys
+    pub fn get_key_objects(
+        &self,
+        seed: Option<[u8; 32]>,
+    ) -> anyhow::Result<DominusIdentity> {
+        let dir = &self.dir;
+        let dominus_private_identity_file = dir.join(DOMINUS_PRIVATE_IDENTITY);
+        let dominus_public_identity_file = dir.join(DOMINUS_PUBLIC_IDENTITY);
+
+        // If they all already exist, use them, otherwise generate new ones and overwrite
+        if dominus_private_identity_file.exists()
+            && dominus_public_identity_file.exists()
+        {
+            Ok(DominusIdentity {
+                private_identity: read_yaml(dominus_private_identity_file.as_path())?,
+                public_identity: read_yaml(dominus_public_identity_file.as_path())?,
+            })
+        } else {
+            let mut key_generator = if let Some(seed) = seed {
+                KeyGen::from_seed(seed)
+            } else {
+                KeyGen::from_os_rng()
+            };
+
+            let (dominus_identity, _) = generate_key_objects(&mut key_generator)?;
+
+            // Write identities in files
+            write_yaml(dominus_private_identity_file.as_path(), &dominus_identity.private_identity)?;
+            write_yaml(dominus_public_identity_file.as_path(), &dominus_identity.public_identity)?;
+            Ok(dominus_identity)
+        }
+    }
+}
+
+impl TryFrom<&DominusConfig> for DominusConfiguration {
+    type Error = anyhow::Error;
+
+    fn try_from(config: &DominusConfig) -> Result<Self, Self::Error> {
+	let dominus_identity = config.get_key_objects(None)?;
+	Ok(DominusConfiguration {
+	    owner_account_address: dominus_identity.private_identity.account_address.into(),
+	    owner_account_public_key: dominus_identity
+		.private_identity.account_private_key.public_key(),
+	    allocation_amount: config.genesis_allocation,
+	})
+    }
+}
 
 /// Configuration to run a local validator node
 #[derive(Debug, Clone)]
@@ -91,8 +172,9 @@ impl ValidatorNodeConfig {
     /// Initializes keys and identities for a validator config
     /// TODO: Put this all in storage rather than files?
     fn init_keys(&mut self, seed: Option<[u8; 32]>) -> anyhow::Result<()> {
-        let (validator_identity, _, _, _) = self.get_key_objects(seed)?;
-        self.account_private_key = validator_identity.account_private_key.map(ConfigKey::new);
+        let validator_identity = self.get_key_objects(seed)?;
+        self.account_private_key =
+	    validator_identity.validator_identity.account_private_key.map(ConfigKey::new);
 
         // Init network identity
         let validator_network = self.config.validator_network.as_mut().unwrap();
@@ -106,7 +188,7 @@ impl ValidatorNodeConfig {
     pub fn get_key_objects(
         &self,
         seed: Option<[u8; 32]>,
-    ) -> anyhow::Result<(IdentityBlob, IdentityBlob, PrivateIdentity, PublicIdentity)> {
+    ) -> anyhow::Result<ValidatorIdentity> {
         let dir = &self.dir;
         let val_identity_file = dir.join(VALIDATOR_IDENTITY);
         let vfn_identity_file = dir.join(VFN_IDENTITY);
@@ -119,12 +201,12 @@ impl ValidatorNodeConfig {
             && private_identity_file.exists()
             && public_identity_file.exists()
         {
-            Ok((
-                read_yaml(val_identity_file.as_path())?,
-                read_yaml(vfn_identity_file.as_path())?,
-                read_yaml(private_identity_file.as_path())?,
-                read_yaml(public_identity_file.as_path())?,
-            ))
+            Ok(ValidatorIdentity {
+                validator_identity: read_yaml(val_identity_file.as_path())?,
+                vfn_identity: read_yaml(vfn_identity_file.as_path())?,
+                private_identity: read_yaml(private_identity_file.as_path())?,
+                public_identity: read_yaml(public_identity_file.as_path())?,
+            })
         } else {
             let mut key_generator = if let Some(seed) = seed {
                 KeyGen::from_seed(seed)
@@ -132,20 +214,14 @@ impl ValidatorNodeConfig {
                 KeyGen::from_os_rng()
             };
 
-            let (validator_identity, vfn_identity, private_identity, public_identity) =
-                generate_key_objects(&mut key_generator)?;
+            let (_, validator_identity) = generate_key_objects(&mut key_generator)?;
 
             // Write identities in files
-            write_yaml(val_identity_file.as_path(), &validator_identity)?;
-            write_yaml(vfn_identity_file.as_path(), &vfn_identity)?;
-            write_yaml(private_identity_file.as_path(), &private_identity)?;
-            write_yaml(public_identity_file.as_path(), &public_identity)?;
-            Ok((
-                validator_identity,
-                vfn_identity,
-                private_identity,
-                public_identity,
-            ))
+            write_yaml(val_identity_file.as_path(), &validator_identity.validator_identity)?;
+            write_yaml(vfn_identity_file.as_path(), &validator_identity.vfn_identity)?;
+            write_yaml(private_identity_file.as_path(), &validator_identity.private_identity)?;
+            write_yaml(public_identity_file.as_path(), &validator_identity.public_identity)?;
+            Ok(validator_identity)
         }
     }
 
@@ -176,7 +252,7 @@ impl TryFrom<&ValidatorNodeConfig> for ValidatorConfiguration {
     type Error = anyhow::Error;
 
     fn try_from(config: &ValidatorNodeConfig) -> Result<Self, Self::Error> {
-        let (_, _, private_identity, _) = config.get_key_objects(None)?;
+	let ValidatorIdentity { private_identity, .. } = config.get_key_objects(None)?;
         let validator_host = (&config
             .config
             .validator_network
@@ -409,6 +485,7 @@ pub struct GenesisConfiguration {
     pub gas_schedule: GasScheduleV2,
 }
 
+pub type InitDominusConfigFn = Arc<dyn Fn(usize, &mut u64) + Send + Sync>;
 pub type InitConfigFn = Arc<dyn Fn(usize, &mut NodeConfig, &mut u64) + Send + Sync>;
 pub type InitGenesisConfigFn = Arc<dyn Fn(&mut GenesisConfiguration) + Send + Sync>;
 
@@ -417,8 +494,10 @@ pub type InitGenesisConfigFn = Arc<dyn Fn(&mut GenesisConfiguration) + Send + Sy
 pub struct Builder {
     config_dir: PathBuf,
     framework: ReleaseBundle,
+    num_domini: NonZeroUsize,
     num_validators: NonZeroUsize,
     randomize_first_validator_ports: bool,
+    init_dominus_config: Option<InitDominusConfigFn>,
     init_config: Option<InitConfigFn>,
     init_genesis_config: Option<InitGenesisConfigFn>,
 }
@@ -431,8 +510,10 @@ impl Builder {
         Ok(Self {
             config_dir,
             framework,
+	    num_domini: NonZeroUsize::new(1).unwrap(),
             num_validators: NonZeroUsize::new(1).unwrap(),
             randomize_first_validator_ports: true,
+	    init_dominus_config: None,
             init_config: None,
             init_genesis_config: None,
         })
@@ -443,9 +524,19 @@ impl Builder {
         self
     }
 
+    pub fn with_num_domini(mut self, num_domini: NonZeroUsize) -> Self {
+	self.num_domini = num_domini;
+	self
+    }
+
     pub fn with_num_validators(mut self, num_validators: NonZeroUsize) -> Self {
         self.num_validators = num_validators;
         self
+    }
+
+    pub fn with_dominus_init_config(mut self, init_dominus_config: Option<InitDominusConfigFn>) -> Self {
+	self.init_dominus_config = init_dominus_config;
+	self
     }
 
     pub fn with_init_config(mut self, init_config: Option<InitConfigFn>) -> Self {
@@ -469,6 +560,7 @@ impl Builder {
         Ed25519PrivateKey,
         Transaction,
         Waypoint,
+	Vec<DominusConfig>,
         Vec<ValidatorNodeConfig>,
     )>
     where
@@ -476,7 +568,8 @@ impl Builder {
     {
         // We use this print statement to allow debugging of local deployments
         info!(
-            "Building genesis with {:?} validators. Directory of output: {:?}",
+            "Building genesis with {:?} domini and {:?} validators. Directory of output: {:?}",
+	    self.num_domini.get(),
             self.num_validators.get(),
             self.config_dir
         );
@@ -485,6 +578,11 @@ impl Builder {
         let mut keygen = KeyGen::from_seed(rng.gen());
         let root_key = keygen.generate_ed25519_private_key();
 
+	// Generate dominus configs
+	let mut domini: Vec<DominusConfig> = (0..self.num_domini.get())
+	    .map(|i| self.generate_dominus_config(i, &mut rng))
+	    .collect::<anyhow::Result<Vec<DominusConfig>>>()?;
+
         // Generate validator configs
         let template = NodeConfig::default_for_validator();
         let mut validators: Vec<ValidatorNodeConfig> = (0..self.num_validators.get())
@@ -492,14 +590,44 @@ impl Builder {
             .collect::<anyhow::Result<Vec<ValidatorNodeConfig>>>()?;
 
         // Build genesis
-        let (genesis, waypoint) = self.genesis_ceremony(&mut validators, root_key.public_key())?;
+        let (genesis, waypoint) = self.genesis_ceremony(
+	    &mut domini,
+	    &mut validators,
+	    root_key.public_key(),
+	)?;
 
         // Save configs for validators so they can run
         for validator in validators.iter_mut() {
             validator.save_config()?;
         }
 
-        Ok((root_key, genesis, waypoint, validators))
+        Ok((root_key, genesis, waypoint, domini, validators))
+    }
+
+    /// Generate a configuration for a single dominus
+    fn generate_dominus_config<R>(
+	&mut self,
+	index: usize,
+	mut rng: R,
+    ) -> anyhow::Result<DominusConfig>
+    where
+	R: rand::RngCore + rand::CryptoRng,
+    {
+	let name = index.to_string();
+
+	let mut genesis_allocation = 1;
+	if let Some(init_dominus_config) = &self.init_dominus_config {
+	    (init_dominus_config)(index, &mut genesis_allocation);
+	}
+
+	let mut dominus = DominusConfig::new(
+	    name,
+	    self.config_dir.as_path(),
+	    genesis_allocation,
+	)?;
+	dominus.init_keys(Some(rng.gen()))?;
+
+	Ok(dominus)
     }
 
     /// Generate a configuration for a single validator
@@ -581,11 +709,16 @@ impl Builder {
     /// Do the genesis ceremony and copy waypoint and genesis to each node
     fn genesis_ceremony(
         &mut self,
+	domini: &mut Vec<DominusConfig>,
         validators: &mut Vec<ValidatorNodeConfig>,
         root_key: Ed25519PublicKey,
     ) -> anyhow::Result<(Transaction, Waypoint)> {
-        let mut configs: Vec<ValidatorConfiguration> = Vec::new();
+	let mut domini_configs: Vec<DominusConfiguration> = Vec::new();
+	for dominus in domini.iter() {
+	    domini_configs.push(dominus.try_into()?);
+	}
 
+        let mut configs: Vec<ValidatorConfiguration> = Vec::new();
         for validator in validators.iter() {
             configs.push(validator.try_into()?);
         }
@@ -613,6 +746,7 @@ impl Builder {
         let mut genesis_info = GenesisInfo::new(
             ChainId::test(),
             root_key,
+	    domini_configs,
             configs,
             self.framework.clone(),
             &genesis_config,

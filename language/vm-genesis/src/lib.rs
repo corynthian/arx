@@ -171,6 +171,7 @@ pub fn encode_arx_mainnet_genesis_transaction(
 
 pub fn encode_genesis_transaction(
     arx_root_key: Ed25519PublicKey,
+    domini: &[Dominus],
     validators: &[Validator],
     framework: &ReleaseBundle,
     chain_id: ChainId,
@@ -180,6 +181,7 @@ pub fn encode_genesis_transaction(
 ) -> Transaction {
     Transaction::GenesisTransaction(WriteSetPayload::Direct(encode_genesis_change_set(
         &arx_root_key,
+	domini,
         validators,
         framework,
         chain_id,
@@ -191,6 +193,7 @@ pub fn encode_genesis_transaction(
 
 pub fn encode_genesis_change_set(
     core_resources_key: &Ed25519PublicKey,
+    domini: &[Dominus],
     validators: &[Validator],
     framework: &ReleaseBundle,
     chain_id: ChainId,
@@ -232,6 +235,7 @@ pub fn encode_genesis_change_set(
         initialize_arx_coin(&mut session);
     }
     initialize_on_chain_governance(&mut session, genesis_config);
+    create_and_initialize_domini(&mut session, domini);
     create_and_initialize_validators(&mut session, validators);
     if genesis_config.is_test {
         allow_core_resources_to_set_version(&mut session);
@@ -486,6 +490,22 @@ fn create_accounts(session: &mut SessionExt<impl MoveResolver>, accounts: &[Acco
     );
 }
 
+fn create_and_initialize_domini(
+    session: &mut SessionExt<impl MoveResolver>,
+    domini: &[Dominus],
+) {
+    let domini_bytes = bcs::to_bytes(domini).expect("Domini can be serialized");
+    let mut serialized_values = serialize_values(&vec![MoveValue::Signer(CORE_CODE_ADDRESS)]);
+    serialized_values.push(domini_bytes);
+    exec_function(
+	session,
+	GENESIS_MODULE_NAME,
+	"create_initialize_domini",
+	vec![],
+	serialized_values,
+    );
+}
+
 /// Creates and initializes each validator owner and validator operator. This method creates all
 /// the required accounts, sets the validator operators for each validator owner, and sets the
 /// validator config on-chain.
@@ -652,8 +672,41 @@ pub fn test_genesis_transaction() -> Transaction {
 
 pub fn test_genesis_change_set_and_validators(
     count: Option<usize>,
-) -> (ChangeSet, Vec<TestValidator>) {
+) -> (ChangeSet, Vec<TestDominus>, Vec<TestValidator>) {
     generate_test_genesis(arx_cached_packages::head_release_bundle(), count)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Dominus {
+    pub owner_address: AccountAddress,
+    pub allocation_amount: u64,
+}
+
+pub struct TestDominus {
+    pub key: Ed25519PrivateKey,
+    pub data: Dominus,
+}
+
+impl TestDominus {
+    pub fn new_test_set(count: Option<usize>, initial_allocation: Option<u64>) -> Vec<TestDominus> {
+        let mut rng = rand::SeedableRng::from_seed([1u8; 32]);
+        (0..count.unwrap_or(10))
+            .map(|_| TestDominus::gen(&mut rng, initial_allocation))
+            .collect()
+    }
+
+    fn gen(rng: &mut StdRng, initial_allocation: Option<u64>) -> TestDominus {
+        let key = Ed25519PrivateKey::generate(rng);
+        let auth_key = AuthenticationKey::ed25519(&key.public_key());
+        let owner_address = auth_key.derived_address();
+        let allocation_amount = if let Some(amount) = initial_allocation {
+            amount
+        } else {
+            1
+        };
+        let data = Dominus { owner_address, allocation_amount };
+        Self { key, data }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -730,19 +783,25 @@ impl TestValidator {
 pub fn generate_test_genesis(
     framework: &ReleaseBundle,
     count: Option<usize>,
-) -> (ChangeSet, Vec<TestValidator>) {
+) -> (ChangeSet, Vec<TestDominus>, Vec<TestValidator>) {
+    // Initialise the domini for the subsidialis.
+    let test_domini = TestDominus::new_test_set(count, Some(100_000_000));
+    let domini_: Vec<Dominus> = test_domini.iter().map(|t| t.data.clone()).collect();
+    let domini = &domini_;
+
     let test_validators = TestValidator::new_test_set(count, Some(100_000_000));
     let validators_: Vec<Validator> = test_validators.iter().map(|t| t.data.clone()).collect();
     let validators = &validators_;
 
     let genesis = encode_genesis_change_set(
         &GENESIS_KEYPAIR.1,
+	domini,
         validators,
         framework,
         ChainId::test(),
         &GenesisConfiguration {
             allow_new_validators: true,
-            epoch_duration_secs: 3600,
+            epoch_duration_secs: 60, // Every minute for testing
             is_test: true,
             min_stake: 0,
             min_voting_threshold: 0,
@@ -757,13 +816,18 @@ pub fn generate_test_genesis(
         &OnChainConsensusConfig::default(),
         &default_gas_schedule(),
     );
-    (genesis, test_validators)
+    (genesis, test_domini, test_validators)
 }
 
 pub fn generate_mainnet_genesis(
     framework: &ReleaseBundle,
     count: Option<usize>,
-) -> (ChangeSet, Vec<TestValidator>) {
+) -> (ChangeSet, Vec<TestDominus>, Vec<TestValidator>) {
+    // TODO: Update to have custom domini.
+    let test_domini = TestDominus::new_test_set(count, Some(100_000_000));
+    let domini_: Vec<Dominus> = test_domini.iter().map(|t| t.data.clone()).collect();
+    let domini = &domini_;
+
     // TODO: Update to have custom validators/accounts with initial balances at genesis.
     let test_validators = TestValidator::new_test_set(count, Some(1_000_000_000_000_000));
     let validators_: Vec<Validator> = test_validators.iter().map(|t| t.data.clone()).collect();
@@ -771,6 +835,7 @@ pub fn generate_mainnet_genesis(
 
     let genesis = encode_genesis_change_set(
         &GENESIS_KEYPAIR.1,
+	domini,
         validators,
         framework,
         ChainId::test(),
@@ -778,7 +843,7 @@ pub fn generate_mainnet_genesis(
         &OnChainConsensusConfig::default(),
         &default_gas_schedule(),
     );
-    (genesis, test_validators)
+    (genesis, test_domini, test_validators)
 }
 
 fn mainnet_genesis_config() -> GenesisConfiguration {
@@ -912,6 +977,8 @@ pub fn test_mainnet_end_to_end() {
             balance: non_validator_balance,
         },
     ];
+
+    let _test_domini = TestDominus::new_test_set(Some(6), Some(balance * 9 / 10));
 
     let test_validators = TestValidator::new_test_set(Some(6), Some(balance * 9 / 10));
     let mut zero_commission_validator = test_validators[2].data.clone();
