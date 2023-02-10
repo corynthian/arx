@@ -1,10 +1,12 @@
 /// The purpose of the moneta is to distribute `ARX` to members of the subsidialis, the senatus and the
 /// danistae.
 module arx::moneta {
-    use arx::system_addresses;
-    use arx::subsidialis;
-    use arx::liquidity_pool::{Self, LP, Delta};
     use arx::arx_coin::ArxCoin;
+    use arx::delta::{Self, Delta};
+    use arx::liquidity_pool;
+    use arx::lp_coin::LP;
+    use arx::subsidialis;
+    use arx::system_addresses;
     use arx::xusd_coin::XUSDCoin;
 
     use std::uq64x64;
@@ -12,6 +14,7 @@ module arx::moneta {
     use std::coin::{Self, MintCapability, BurnCapability};
 
     friend arx::genesis;
+    friend arx::reconfiguration;
     #[test_only]
     friend arx::moneta_tests;
 
@@ -27,18 +30,14 @@ module arx::moneta {
 
 	// Mint 1000:1000 ARX against XUSDCoin
 	let arx_mint_cap = &borrow_global<ArxCoinCapability>(@arx).mint_cap;
-	let arx_burn_cap = &borrow_global<ArxCoinCapability>(@arx).burn_cap;
 	let arx_initial_coins = coin::mint<ArxCoin>(1001, arx_mint_cap);
 	let xusd_mint_cap = &borrow_global<XUSDCoinCapability>(@arx).mint_cap;
-	let xusd_burn_cap = &borrow_global<XUSDCoinCapability>(@arx).burn_cap;
 	let xusd_initial_coins = coin::mint<XUSDCoin>(1001, xusd_mint_cap);
 	// Add 1000:1000 to the liquidity pool
 	let initial_liquidity =
 	    liquidity_pool::mint<ArxCoin, XUSDCoin, Stable>(arx_initial_coins, xusd_initial_coins);
 	// Burn the `ARX` liquidity tokens, rendering them unusable
-	let (x, y) = liquidity_pool::burn<ArxCoin, XUSDCoin, Stable>(initial_liquidity);
-	coin::burn<ArxCoin>(x, arx_burn_cap);
-	coin::burn<XUSDCoin>(y, xusd_burn_cap);
+	liquidity_pool::burn_destructive<ArxCoin, XUSDCoin, Stable>(initial_liquidity);
     }
 
     public(friend) fun on_new_epoch()
@@ -47,7 +46,7 @@ module arx::moneta {
 	// Fetch the Arx delta for this epoch according to the price oracle.
 	let delta = liquidity_pool::get_last_epoch_delta<ArxCoin, XUSDCoin, Stable>();
 	// If the deltaA is positive >1:
-	if (liquidity_pool::get_delta_value(&delta) == 1) {
+	if (delta::get_delta_value(&delta) == 1) {
 	    // Calculate the share of new mints owed to the subsidialis (TODO: and the senatus).
 	    let (subsidialis_share, _daenistae_share) = calculate_mint_shares(&delta);
 	    // Calculate the share of subsidialis mints between `ArxCoin` and `LP<..>`.
@@ -60,9 +59,9 @@ module arx::moneta {
 	    subsidialis::distribute_mints<ArxCoin>(subsidialis_arx_coins);
 	    subsidialis::distribute_mints<LP<ArxCoin, XUSDCoin, Stable>>(subsidialis_lp_coins);
 	    // Assign 50% of mints to the danistae.
-	    // let _danistae_mints = liquidity_pool::get_delta_value(&delta) / 2;
+	    // let _danistae_mints = delta::get_delta_value(&delta) / 2;
 	    // Decrease the nexus interest rate.
-	} else if (liquidity_pool::get_delta_value(&delta) == 2) {
+	} else if (delta::get_delta_value(&delta) == 2) {
 	    // If the deltaA is negative <1:
 	    // Offer (-deltaA / 2) aes to the danistae.
 	    // Increase the interest rate on bonds according to game theoretic incentives.
@@ -73,8 +72,8 @@ module arx::moneta {
     
     fun calculate_mint_shares(delta: &Delta): (u64, u64) {
 	// TODO: Add senatus
-	let subsidialis_share = liquidity_pool::get_delta_value(delta) / 2;
-	let danistae_share = liquidity_pool::get_delta_value(delta) / 2;
+	let subsidialis_share = delta::get_delta_value(delta) / 2;
+	let danistae_share = delta::get_delta_value(delta) / 2;
 	(subsidialis_share, danistae_share)
     }
 

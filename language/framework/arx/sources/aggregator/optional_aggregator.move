@@ -15,7 +15,8 @@ module arx::optional_aggregator {
     /// Aggregator feature is not supported. Raised by native code.
     const EAGGREGATOR_UNDERFLOW: u64 = 2;
 
-    /// Wrapper around integer with a custom overflow limit. Supports add, subtract and read just like `Aggregator`.
+    /// Wrapper around integer with a custom overflow limit. Supports add, subtract and read just like
+    /// `Aggregator`.
     struct Integer has store {
         value: u128,
         limit: u128,

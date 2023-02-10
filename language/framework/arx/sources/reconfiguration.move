@@ -1,16 +1,23 @@
 /// Publishes configuration information for validators, and issues reconfiguration events
 /// to synchronize configuration changes for the validators.
 module arx::reconfiguration {
+    use std::curves::Stable;
     use std::error;
     use std::features;
     use std::signer;
 
     use arx::account;
-    use arx::event;
-    use arx::system_addresses;
-    use arx::timestamp;
+    use arx::arx_coin::ArxCoin;
+    use arx::lp_coin::LP;
+    use arx::xusd_coin::XUSDCoin;
     use arx::chain_status;
+    use arx::event;
+    use arx::liquidity_pool;
+    use arx::moneta;
+    use arx::system_addresses;
     use arx::storage_gas;
+    use arx::subsidialis;
+    use arx::timestamp;
     use arx::transaction_fee;
     use arx::validator;
 
@@ -140,6 +147,13 @@ module arx::reconfiguration {
         // Compute the new validator set and distribute rewards (and maybe) transaction fees.
         validator::on_new_epoch();
 
+	// Compute the new minting rewards and distribute to the subsidialis, senatus and the danistae.
+	moneta::on_new_epoch();
+	// Compute the seignorage rewards of the subsidialis.
+	subsidialis::on_new_epoch<ArxCoin>();
+	subsidialis::on_new_epoch<LP<ArxCoin, XUSDCoin, Stable>>();
+	// TODO: Compute the seignorage rewards of the senatus.
+
         storage_gas::on_reconfig();
 
         assert!(
@@ -151,6 +165,9 @@ module arx::reconfiguration {
             assume config_ref.epoch + 1 <= MAX_U64;
         };
         config_ref.epoch = config_ref.epoch + 1;
+
+	// Update liquidity pool last epoch timestamp
+	liquidity_pool::set_reconfiguration_timestamp<ArxCoin, XUSDCoin, Stable>(current_time);
 
         event::emit_event<NewEpochEvent>(
             &mut config_ref.events,

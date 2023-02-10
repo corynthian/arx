@@ -1,7 +1,7 @@
 module arx::genesis {
     use std::error;
     use std::vector;
-    //use std::curves::Stable;
+    use std::curves::Stable;
 
     use arx::account;
     use arx::aggregator_factory;
@@ -13,8 +13,9 @@ module arx::genesis {
     use arx::coin;
     use arx::consensus_config;
     use arx::create_signer::create_signer;
+    use arx::forma;
     use arx::gas_schedule;
-    //use arx::liquidity_pool;
+    use arx::lp_coin::LP;
     use arx::lux_coin;
     use arx::moneta;
     use arx::nox_coin;
@@ -29,7 +30,7 @@ module arx::genesis {
     use arx::transaction_fee;
     use arx::transaction_validation;
     use arx::version;
-    use arx::xusd_coin; //::{Self, XUSD};
+    use arx::xusd_coin::{Self, XUSDCoin};
 
     const EDUPLICATE_ACCOUNT: u64 = 1;
     const EACCOUNT_DOES_NOT_EXIST: u64 = 2;
@@ -39,10 +40,9 @@ module arx::genesis {
         balance: u64,
     }
 
-    /// Map containing accounts which existed pre-genesis.
-    struct ExistingAccountMap has copy, drop {
-	accounts: vector<address>,
-	allocations: vector<u64>,
+    struct DominusConfiguration has copy, drop {
+	owner_address: address,
+	allocation_amount: u64,
     }
 
     struct ValidatorConfiguration has copy, drop {
@@ -166,8 +166,12 @@ module arx::genesis {
         arx_coin::configure_accounts_for_test(arx, &core_resources, arx_mint_cap);
 	xusd_coin::configure_accounts_for_test(arx, &core_resources, xusd_mint_cap);
 
-	subsidialis::initialize(arx);
+	// Initialises the required liquidity pool and mints some initial liquidity.
 	moneta::initialize_for_testing(arx);
+	// Registers the required forma types for the creation of solaris.
+	forma::initialize(arx);
+	// Initialises an empty subsidialis set so that domini can be added.
+	subsidialis::initialize(arx);
     }
 
     fun create_accounts(arx: &signer, accounts: vector<AccountMap>) {
@@ -224,12 +228,36 @@ module arx::genesis {
 
 	// Transition to the next validation epoch
         validator::on_new_epoch();
+    }
+
+    /// Sets up the initial members of the subsidialis. 
+    fun create_initialize_domini(arx: &signer, domini: vector<DominusConfiguration>) {
+	let i = 0;
+	let num_domini = vector::length(&domini);
+	while (i < num_domini) {
+	    let dominus = vector::borrow(&domini, i);
+	    create_initialize_dominus(arx, dominus);
+	    i = i + 1;
+	};
 
 	// Transition to the next moneta epoch
 	moneta::on_new_epoch();
 	// Transition to the next `ArxCoin` subsidialis epoch.
 	subsidialis::on_new_epoch<ArxCoin>();
 	// Transition to the next `LP<ArxCoin, XUSD>` subsidialis epoch.
+	subsidialis::on_new_epoch<LP<ArxCoin, XUSDCoin, Stable>>();
+	// TODO: Transition to the next senatus epoch.
+    }
+
+    fun create_initialize_dominus(
+	arx: &signer,
+	dominus: &DominusConfiguration,
+    ) {
+	let owner = &create_account(arx, dominus.owner_address, dominus.allocation_amount);
+	// Initialise the solaris allocation. 
+	solaris::initialize_allocation<ArxCoin>(owner, dominus.allocation_amount);
+	// Join the subsidialis.
+	subsidialis::join<ArxCoin>(owner);
     }
 
     /// Sets up the initial validator set for the network.

@@ -12,9 +12,12 @@ module arx::liquidity_pool {
 
     use arx::account;
     use arx::coin::{Self, Coin};
+    use arx::delta::{Self, Delta};
+    use arx::lp_coin::LP;
     use arx::timestamp;
     use arx::system_addresses;
-    use arx::reconfiguration;
+
+    friend arx::reconfiguration;
 
     // Error codes.
 
@@ -42,15 +45,14 @@ module arx::liquidity_pool {
     /// Minimum liquidity.
     const MINIMUM_LIQUIDITY: u64 = 1000;
     
-    /// LP coin type.
-    struct LP<phantom X, phantom Y, phantom Curve> {}
-
     /// Liquidity pool with cumulative price aggregation.
     struct LiquidityPool<phantom X, phantom Y, phantom Curve> has key {
 	/// The amount of coin `X` held in reserves.
 	coin_x_reserve: Coin<X>,
 	/// The amount of coin `Y` held in reserves.
 	coin_y_reserve: Coin<Y>,
+	/// The reconfiguration timestamp.
+	reconfiguration_timestamp: u64,
 	/// The timestamp of the last epoch where the oracle is updated.
 	last_epoch_timestamp: u64,
 	/// The timestamp of the last block where the oracle was updated.
@@ -83,34 +85,12 @@ module arx::liquidity_pool {
 	y_scale: u64,
     }
 
-    // Delta enumeration
-
-    /// Delta zero
-    const DELTA_EQUAL: u64 = 0;
-    /// Delta positive sign
-    const DELTA_POSITIVE: u64 = 1;
-    /// Delta negative sign
-    const DELTA_NEGATIVE: u64 = 2;
-
-    /// Represents the time weighted average reserve of X in the last epoch.
-    struct Delta has drop {
-	/// Whether X > Y, Y > X or X = Y
-	sign: u64,
-	/// The cumulative difference in X vs Y
-	value: u64,
-    }
-    public fun get_delta_sign(delta: &Delta): u64 {
-	delta.sign
-    }
-    public fun get_delta_value(delta: &Delta): u64 {
-	delta.value
-    }
-
     /// Liquidity pool events.
     struct LiquidityPoolEvents<phantom X, phantom Y, phantom Curve> has key {
 	pool_created_events: event::EventHandle<PoolCreatedEvent<X, Y, Curve>>,
 	liquidity_added_events: event::EventHandle<LiquidityAddedEvent<X, Y, Curve>>,
 	liquidity_removed_events: event::EventHandle<LiquidityRemovedEvent<X, Y, Curve>>,
+	liquidity_burned_events: event::EventHandle<LiquidityBurnedEvent<X, Y, Curve>>,
 	swap_events: event::EventHandle<SwapEvent<X, Y, Curve>>,
 	oracle_update_events: event::EventHandle<OracleUpdateEvent<X, Y, Curve>>,
     }
@@ -129,6 +109,11 @@ module arx::liquidity_pool {
     struct LiquidityRemovedEvent<phantom X, phantom Y, phantom Curve> has drop, store {
         returned_x_val: u64,
         returned_y_val: u64,
+        lp_tokens_burned: u64,
+    }
+
+    /// Liquidity was burned destructively.
+    struct LiquidityBurnedEvent<phantom X, phantom Y, phantom Curve> has drop, store {
         lp_tokens_burned: u64,
     }
 
@@ -191,7 +176,8 @@ module arx::liquidity_pool {
 	let pool = LiquidityPool<X, Y, Curve> {
 	    coin_x_reserve: coin::zero<X>(),
 	    coin_y_reserve: coin::zero<Y>(),
-	    last_epoch_timestamp: reconfiguration::last_reconfiguration_time(),
+	    reconfiguration_timestamp: 0,
+	    last_epoch_timestamp: 0,
 	    last_block_timestamp: 0,
 	    last_price_x_cumulative: 0,
 	    last_price_y_cumulative: 0,
@@ -213,6 +199,7 @@ module arx::liquidity_pool {
             pool_created_events: account::new_event_handle(arx_account),
             liquidity_added_events: account::new_event_handle(arx_account),
             liquidity_removed_events: account::new_event_handle(arx_account),
+	    liquidity_burned_events: account::new_event_handle(arx_account),
             swap_events: account::new_event_handle(arx_account),
             oracle_update_events: account::new_event_handle(arx_account),
 	};
@@ -296,8 +283,16 @@ module arx::liquidity_pool {
 	let y_reserve_val = coin::value(&pool.coin_y_reserve);
 
 	// Compute x, y coin values for provided lp_coins value
-	let x_to_return_val = math128::mul_div((burned_lp_coins_val as u128), (x_reserve_val as u128), lp_coins_total);
-	let y_to_return_val = math128::mul_div((burned_lp_coins_val as u128), (y_reserve_val as u128), lp_coins_total);
+	let x_to_return_val = math128::mul_div(
+	    (burned_lp_coins_val as u128),
+	    (x_reserve_val as u128),
+	    lp_coins_total
+	);
+	let y_to_return_val = math128::mul_div(
+	    (burned_lp_coins_val as u128),
+	    (y_reserve_val as u128),
+	    lp_coins_total
+	);
 	assert!(x_to_return_val > 0 && y_to_return_val > 0, EINVALID_BURN_VALUES);
 
 	// Withdraw values from reserves
@@ -317,6 +312,26 @@ module arx::liquidity_pool {
 	    });
 
 	(x_coin_to_return, y_coin_to_return)
+    }
+
+    /// Burn liquidity coins whilst leaving the reserves intact. Used in genesis.
+    public fun burn_destructive<X, Y, Curve>(lp_coins: Coin<LP<X, Y, Curve>>)
+	acquires LiquidityPool, LiquidityPoolEvents
+    {
+	assert!(coin_type::preserves_ordering<X, Y>(), EINVALID_ORDERING);
+	assert!(exists<LiquidityPool<X, Y, Curve>>(@arx), EPOOL_DOES_NOT_EXIST);
+
+	let burned_lp_coins_val = coin::value(&lp_coins);
+
+	let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@arx);
+	coin::burn(lp_coins, &pool.lp_burn_cap);
+
+	let lp_events = borrow_global_mut<LiquidityPoolEvents<X, Y, Curve>>(@arx);
+	event::emit_event(
+	    &mut lp_events.liquidity_burned_events,
+	    LiquidityBurnedEvent<X, Y, Curve> {
+		lp_tokens_burned: burned_lp_coins_val,
+	    });
     }
 
     /// Swap coins (may swap both x and y at the same time). Permissionless.
@@ -371,6 +386,12 @@ module arx::liquidity_pool {
 	(x_swapped, y_swapped)
     }
 
+    public(friend) fun set_reconfiguration_timestamp<X, Y, Curve>(ts: u64) acquires LiquidityPool
+    {
+	let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@arx);
+	pool.reconfiguration_timestamp = ts;
+    }
+
     // Private functions
 
     /// Update the cumulative prices (decentralised price oracle).
@@ -379,12 +400,13 @@ module arx::liquidity_pool {
 	x_reserve: u64,
 	y_reserve: u64
     ) acquires LiquidityPoolEvents {
-	let last_epoch_timestamp = reconfiguration::last_reconfiguration_time();
-	if (last_epoch_timestamp > pool.last_epoch_timestamp) {
+	// The reconfiguration module sets the `pool.reconfiguration_timestamp` in order to avoid a
+	// cyclic dependency with the liqudity pool.
+	if (pool.reconfiguration_timestamp > pool.last_epoch_timestamp) {
 	    // Reset the number of time samples taken to 0.
 	    pool.epoch_samples = 0;
 	    // Set the pools last epoch timestamp to the new epoch.
-	    pool.last_epoch_timestamp = last_epoch_timestamp;
+	    pool.last_epoch_timestamp = pool.reconfiguration_timestamp;
 	};
 
 	let last_block_timestamp = pool.last_block_timestamp;
@@ -448,13 +470,13 @@ module arx::liquidity_pool {
 
 	// If there is an excess of X in reserves then the sign is negative
 	if (pool.epoch_twar_x > pool.epoch_twar_y) {
-	    Delta { sign: DELTA_NEGATIVE, value: ((pool.epoch_twar_x - pool.epoch_twar_y) as u64) }
+	    delta::create(2, ((pool.epoch_twar_x - pool.epoch_twar_y) as u64))
 	} else if (pool.epoch_twar_y > pool.epoch_twar_x) {
 	    // If there is a shortage of X in reserves then the sign is positive
-	    Delta { sign: DELTA_POSITIVE, value: ((pool.epoch_twar_y - pool.epoch_twar_x) as u64) }
+	    delta::create(1, ((pool.epoch_twar_y - pool.epoch_twar_x) as u64))
 	} else {
 	    // Otherwise sign is equal
-	    Delta { sign: DELTA_EQUAL, value: 0 }
+	    delta::create(0, 0)
 	}
     }
 

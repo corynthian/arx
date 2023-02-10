@@ -1,10 +1,15 @@
 /// Incitamentum definitionis
 module arx::forma {
-    use arx::system_addresses;
-    use arx::chain_status;
     use arx::arx_coin::ArxCoin;
+    use arx::chain_status;
+    use arx::lp_coin::LP;
+    use arx::system_addresses;
+    use arx::xusd_coin::XUSDCoin;
 
+    use std::curves::Stable;
     use std::error;
+
+    friend arx::genesis;
 
     struct Forma<phantom CoinType> has key {
 	/// The lux incentive of this forma.
@@ -23,6 +28,7 @@ module arx::forma {
 	chain_status::assert_genesis();
 
 	register<ArxCoin>(arx_account, 1, 1);
+	register<LP<ArxCoin, XUSDCoin, Stable>>(arx_account, 1, 1);
     }
 
     /// Registers a new forma which allows for the existence of a solaris of the same coin type.

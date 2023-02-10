@@ -446,14 +446,24 @@ module arx::coin {
             error::already_exists(ECOIN_INFO_ALREADY_PUBLISHED),
         );
 
-        assert!(string::length(&name) <= MAX_COIN_NAME_LENGTH, error::invalid_argument(ECOIN_NAME_TOO_LONG));
-        assert!(string::length(&symbol) <= MAX_COIN_SYMBOL_LENGTH, error::invalid_argument(ECOIN_SYMBOL_TOO_LONG));
+        assert!(
+	    string::length(&name) <= MAX_COIN_NAME_LENGTH,
+	    error::invalid_argument(ECOIN_NAME_TOO_LONG)
+	);
+        assert!(
+	    string::length(&symbol) <= MAX_COIN_SYMBOL_LENGTH,
+	    error::invalid_argument(ECOIN_SYMBOL_TOO_LONG)
+	);
 
         let coin_info = CoinInfo<CoinType> {
             name,
             symbol,
             decimals,
-            supply: if (monitor_supply) { option::some(optional_aggregator::new(MAX_U128, parallelizable)) } else { option::none() },
+            supply: if (monitor_supply) {
+		option::some(optional_aggregator::new(MAX_U128, parallelizable))
+	    } else {
+		option::none()
+	    },
         };
         move_to(account, coin_info);
 
