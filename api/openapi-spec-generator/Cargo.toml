@@ -1,0 +1,22 @@
+[package]
+name = "arx-openapi-spec-generator"
+description = "Arx API OpenAPI Spec Generator"
+version = "0.1.0"
+
+# Workspace inherited keys
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+arx-api = { workspace = true }
+arx-config = { workspace = true }
+arx-mempool = { workspace = true, features = ["fuzzing"] }
+arx-storage-interface = { workspace = true, features = ["fuzzing"] }
+arx-types = { workspace = true }
+clap = { workspace = true }
