@@ -61,11 +61,30 @@ module std::uq64x64 {
         ensures result.v == uq.v * y;
     }
 
+    public fun mul128(uq: UQ64x64, y: u128): UQ64x64 {
+	let v = uq.v * y;
+	UQ64x64{ v }
+    }
+    spec mul {
+        ensures result.v == uq.v * y;
+    }
+
     /// Divide a `UQ64x64` by a `u128`, returning a `UQ64x64`.
     public fun div(uq: UQ64x64, y: u64): UQ64x64 {
         assert!(y != 0, ERR_DIVIDE_BY_ZERO);
 
         let v = uq.v / (y as u128);
+        UQ64x64{ v }
+    }
+    spec div {
+        aborts_if y == 0 with ERR_DIVIDE_BY_ZERO;
+        ensures result.v == uq.v / y;
+    }
+
+    public fun div128(uq: UQ64x64, y: u128): UQ64x64 {
+        assert!(y != 0, ERR_DIVIDE_BY_ZERO);
+
+        let v = uq.v / y;
         UQ64x64{ v }
     }
     spec div {
@@ -80,6 +99,41 @@ module std::uq64x64 {
         let r = (numerator as u128) * Q64;
         let v = r / (denominator as u128);
 
+        UQ64x64{ v }
+    }
+    spec fraction {
+        aborts_if denominator == 0 with ERR_DIVIDE_BY_ZERO;
+        ensures result.v == numerator * Q64 / denominator;
+    }
+
+    public fun fraction64_128(numerator: u64, denominator: u128): UQ64x64 {
+        assert!(denominator != 0, ERR_DIVIDE_BY_ZERO);
+
+        let r = (numerator as u128) * Q64;
+        let v = r / denominator;
+
+        UQ64x64{ v }
+    }
+    spec fraction {
+        aborts_if denominator == 0 with ERR_DIVIDE_BY_ZERO;
+        ensures result.v == numerator * Q64 / denominator;
+    }
+
+    public fun fraction128_64(numerator: u128, denominator: u64): UQ64x64 {
+        assert!(denominator != 0, ERR_DIVIDE_BY_ZERO);
+        let r = numerator * Q64;
+        let v = r / (denominator as u128);
+        UQ64x64{ v }
+    }
+    spec fraction {
+        aborts_if denominator == 0 with ERR_DIVIDE_BY_ZERO;
+        ensures result.v == numerator * Q64 / denominator;
+    }
+
+    public fun fraction128_128(numerator: u128, denominator: u128): UQ64x64 {
+        assert!(denominator != 0, ERR_DIVIDE_BY_ZERO);
+        let r = numerator * Q64;
+        let v = r / denominator;
         UQ64x64{ v }
     }
     spec fraction {
