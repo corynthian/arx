@@ -103,3 +103,9 @@ __pycache__
 # Profiler outputs
 language/arx-vm-profiling/**/*.log
 language/arx-vm-profiling/**/*.txt
+
+# OpenAPI tools
+openapitools.json
+
+# Prevent adding private keys
+*.key
