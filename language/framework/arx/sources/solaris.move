@@ -1,19 +1,24 @@
 module arx::solaris {
     use arx::account;
+    use arx::arx_coin::ArxCoin;
     use arx::coin::{Self, Coin, MintCapability, BurnCapability};
     use arx::forma;
     use arx::lux_coin::LuxCoin;
+    use arx::lp_coin::LP;
     use arx::nox_coin::NoxCoin;
     use arx::system_addresses;
+    use arx::xusd_coin::XUSDCoin;
 
-    use std::math64;
+    use std::curves::Stable;
     use std::error;
     use std::event;
+    use std::math64;
     use std::signer;
     use std::uq64x64;
 
     friend arx::genesis;
     friend arx::subsidialis;
+    friend arx::senatus;
 
     struct Solaris<phantom CoinType> has key {
 	/// Address of the owner of the solaris.
@@ -39,18 +44,27 @@ module arx::solaris {
     /// Stores the event handles of the solaris.
     struct SolarisEvents<phantom CoinType> has key {
 	solaris_initialized_events: event::EventHandle<SolarisInitializedEvent<CoinType>>,
-	solaris_add_coins_events: event::EventHandle<SolarisAddCoinsEvent<CoinType>>,
+	solaris_add_active_coins_events: event::EventHandle<SolarisAddActiveCoinsEvent<CoinType>>,
+	solaris_add_pending_coins_events: event::EventHandle<SolarisAddPendingCoinsEvent<CoinType>>,
 	solaris_remove_coins_events: event::EventHandle<SolarisRemoveCoinsEvent<CoinType>>,
 	solaris_withdraw_coins_events: event::EventHandle<SolarisWithdrawCoinsEvent<CoinType>>,
     }
 
-    /// Triggers when the subsidialis has been initialized.
+    /// Triggers when the solaris has been initialized.
     struct SolarisInitializedEvent<phantom CoinType> has drop, store {
 	owner_address: address,
     }
 
-    /// Triggers when the subsidialis has been initialized.
-    struct SolarisAddCoinsEvent<phantom CoinType> has drop, store {
+    /// Triggers when the subsidialis or the senatus add coins which receive immediate seignorage.
+    struct SolarisAddActiveCoinsEvent<phantom CoinType> has drop, store {
+	solaris_address: address,
+	lux_mint_amount: u64,
+	nox_mint_amount: u64,
+	added_amount: u64,
+    }
+
+    /// Triggers when the subsidialis or the senatus add coins which receive deferred seignorage.
+    struct SolarisAddPendingCoinsEvent<phantom CoinType> has drop, store {
 	solaris_address: address,
 	lux_mint_amount: u64,
 	nox_mint_amount: u64,
@@ -97,7 +111,8 @@ module arx::solaris {
 	});
 	let solaris_events = SolarisEvents<CoinType> {
 	    solaris_initialized_events: account::new_event_handle(owner),
-	    solaris_add_coins_events: account::new_event_handle(owner),
+	    solaris_add_active_coins_events: account::new_event_handle(owner),
+	    solaris_add_pending_coins_events: account::new_event_handle(owner),
 	    solaris_remove_coins_events: account::new_event_handle(owner),
 	    solaris_withdraw_coins_events: account::new_event_handle(owner),
 	};
@@ -117,13 +132,13 @@ module arx::solaris {
 	initialize_owner<CoinType>(owner);
 
 	if (initial_allocation > 0) {
-	    add_coins<CoinType>(owner, initial_allocation);
+	    add_active_coins<CoinType>(owner, initial_allocation);
 	}
     }
 
-    /// Add forma coins to an existing solaris. External.
-    public entry fun add_coins<CoinType>(owner: &signer, amount: u64)
-	acquires SeignorageCapability, Solaris, SolarisEvents
+    /// Add coins to an existing solaris.
+    fun add_coins<CoinType>(owner: &signer, amount: u64)
+	acquires Solaris
     {
 	let solaris_address = signer::address_of(owner);
 	assert_exists<CoinType>(solaris_address);
@@ -142,14 +157,48 @@ module arx::solaris {
 	// Store the added coins into the solaris.
 	let solaris = borrow_global_mut<Solaris<CoinType>>(solaris_address);
 	coin::merge<CoinType>(&mut solaris.locked_forma, coins);
+    }
+
+    /// Add coins with immediate seignorage to an existing solaris.
+    public(friend) fun add_active_coins<CoinType>(owner: &signer, amount: u64)
+	acquires SeignorageCapability, Solaris, SolarisEvents
+    {
+	add_coins<CoinType>(owner, amount);
+
+	let solaris_address = signer::address_of(owner);
 
 	// Mint the base seignorage reward for locking forma coins.
-	let (lux_mint_amount, nox_mint_amount) = mint_base_seignorage<CoinType>(solaris, amount);
+	let (lux_mint_amount, nox_mint_amount) =
+	    mint_active_seignorage<CoinType>(solaris_address, amount);
 
 	let solaris_events = borrow_global_mut<SolarisEvents<CoinType>>(solaris_address);
 	event::emit_event(
-	    &mut solaris_events.solaris_add_coins_events,
-	    SolarisAddCoinsEvent<CoinType> {
+	    &mut solaris_events.solaris_add_active_coins_events,
+	    SolarisAddActiveCoinsEvent<CoinType> {
+		solaris_address,
+		lux_mint_amount,
+		nox_mint_amount,
+		added_amount: amount,
+	    },
+	);
+    }
+
+    /// Add coins with deferred seignorage (until the next epoch) to an existing solaris.
+    public(friend) fun add_pending_coins<CoinType>(owner: &signer, amount: u64)
+	acquires SeignorageCapability, Solaris, SolarisEvents
+    {
+	add_coins<CoinType>(owner, amount);
+
+	let solaris_address = signer::address_of(owner);
+
+	// Mint the base seignorage reward for locking forma coins.
+	let (lux_mint_amount, nox_mint_amount) =
+	    mint_pending_seignorage<CoinType>(solaris_address, amount);
+
+	let solaris_events = borrow_global_mut<SolarisEvents<CoinType>>(solaris_address);
+	event::emit_event(
+	    &mut solaris_events.solaris_add_pending_coins_events,
+	    SolarisAddPendingCoinsEvent<CoinType> {
 		solaris_address,
 		lux_mint_amount,
 		nox_mint_amount,
@@ -277,7 +326,7 @@ module arx::solaris {
 	coin::merge<CoinType>(&mut solaris.locked_forma, reactivated_coins);
 
 	// Re-assign seignorage to reactivated coins.
-	let (_, _) = mint_base_seignorage<CoinType>(solaris, reactivate_amount);
+	let (_, _) = mint_active_seignorage<CoinType>(solaris_address, reactivate_amount);
     }
 
     /// Allocate subsidialis based seignorage rewards. Only called from the subsidialis.
@@ -343,10 +392,12 @@ module arx::solaris {
 	coin::value(&solaris.active_lux)
     }
 
-    /// Mint the base seignorage reward for locking forma coins.
-    fun mint_base_seignorage<CoinType>(solaris: &mut Solaris<CoinType>, amount: u64): (u64, u64)
-	acquires SeignorageCapability
+    /// Mint active seignorage for adding forma coins to the solaris.
+    fun mint_active_seignorage<CoinType>(solaris_address: address, amount: u64): (u64, u64)
+	acquires Solaris, SeignorageCapability
     {
+	let solaris = borrow_global_mut<Solaris<CoinType>>(solaris_address);
+
 	// Mint amount * lux_incentive coins.
 	let lux_incentive = forma::get_lux_incentive<CoinType>();
 	let lux_mint_amount = amount * lux_incentive;
@@ -366,9 +417,44 @@ module arx::solaris {
 	(lux_mint_amount, nox_mint_amount)
     }
 
+    /// Mint pending seignorage for adding forma coins to the solaris.
+    fun mint_pending_seignorage<CoinType>(solaris_address: address, amount: u64): (u64, u64)
+	acquires Solaris, SeignorageCapability
+    {
+	let solaris = borrow_global_mut<Solaris<CoinType>>(solaris_address);
+
+	// Mint amount * lux_incentive coins.
+	let lux_incentive = forma::get_lux_incentive<CoinType>();
+	let lux_mint_amount = amount * lux_incentive;
+	let lux_mint_cap = &borrow_global<SeignorageCapability>(@arx).lux_mint_cap;
+	let lux_coins = coin::mint(lux_mint_amount, lux_mint_cap);
+	// Store the lux coins in the active lux.
+	coin::merge(&mut solaris.pending_active_lux, lux_coins);
+
+	// Mint amount * nox_incentive coins.
+	let nox_incentive = forma::get_nox_incentive<CoinType>();
+	let nox_mint_amount = amount * nox_incentive;
+	let nox_mint_cap = &borrow_global<SeignorageCapability>(@arx).nox_mint_cap;
+	let nox_coins = coin::mint(amount * nox_incentive, nox_mint_cap);
+	// Store the nox coins in the active nox.
+	coin::merge(&mut solaris.pending_active_nox, nox_coins);
+
+	(lux_mint_amount, nox_mint_amount)
+    }
+
     /// Ensures a solaris exists for the supplied coin type at address.
     public fun assert_exists<CoinType>(address: address) {
 	assert!(exists<Solaris<CoinType>>(address), error::not_found(ESOLARIS_NOT_FOUND));
+    }
+
+    /// Returns whether there exists an `ArxCoin` based solaris at the supplied address.
+    public fun exists_arxcoin(address: address): bool {
+	exists<Solaris<ArxCoin>>(address)
+    }
+
+    /// Returns whether there exists an `LP<ArxCoin, XUSDCoin, Stable>` at the supplied address.
+    public fun exists_lp(address: address): bool {
+	exists<Solaris<LP<ArxCoin, XUSDCoin, Stable>>>(address)
     }
 
     /// Set during genesis and stored in the @core_resource account.

@@ -79,9 +79,9 @@ module arx::moneta {
 
     fun calculate_subsidialis_mints(share_of_mints: u64): (u64, u64) {
 	// FIXME: This math loses a lot of precision / hacky / erroneous
-	let arx_power = (subsidialis::get_total_active_power<ArxCoin>() as u64);
-	let lp_power = (subsidialis::get_total_active_power<LP<ArxCoin, XUSDCoin, Stable>>() as u64);
-	let combined_power = (((arx_power as u128) + (lp_power as u128)) as u64);
+	let arx_power = subsidialis::get_total_active_power<ArxCoin>();
+	let lp_power = subsidialis::get_total_active_power<LP<ArxCoin, XUSDCoin, Stable>>();
+	let combined_power = ((arx_power + lp_power as u128) as u64);
 	let arx_power_fraction = uq64x64::decode(uq64x64::fraction(arx_power, combined_power));
 	let lp_power_fraction = uq64x64::decode(uq64x64::fraction(lp_power, combined_power));
 	let arx_mints = arx_power_fraction * share_of_mints;

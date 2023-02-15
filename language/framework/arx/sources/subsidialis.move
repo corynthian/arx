@@ -65,6 +65,8 @@ module arx::subsidialis {
     const EDOMINUS_ALREADY_ACTIVE: u64 = 2;
     /// Attempted to deactivate an already inactive dominus.
     const EDOMINUS_ALREADY_INACTIVE: u64 = 3;
+    /// Attempted to use a non existent solaris position.
+    const ESOLARIS_DOES_NOT_EXIST: u64 = 4;
 
     /// Dominus is waiting to join the set.
     const DOMINUS_STATUS_PENDING_ACTIVE: u64 = 1;
@@ -239,6 +241,47 @@ module arx::subsidialis {
 	coin::destroy_zero<ArxCoin>(coins);
     }
 
+    /// Adds coins to a dominuses solaris.
+    public entry fun add_coins<CoinType>(owner: &signer, amount: u64)
+	acquires Subsidialis
+    {
+	let dominus_address = signer::address_of(owner);
+	solaris::assert_exists<CoinType>(dominus_address);
+
+	// Add coins and add pending_active seignorage if the dominus is currently active in order to
+	// make the seignorage count in the next epoch. If the dominus is not yet active then the
+	// seignorage can be immediately added to active, since they will activate in the next epoch.
+	if (is_active_dominus(dominus_address)) {
+	    solaris::add_pending_coins<CoinType>(owner, amount);
+	} else {
+	    solaris::add_active_coins<CoinType>(owner, amount);
+	};
+
+        // Only track and validate lux power increases for active and pending_active dominuss.
+        // pending_inactive dominui will be removed from the subsidialis in the next epoch.
+        // Inactive domini total stake will be tracked when they join the subsidialis.
+        let subsidialis = borrow_global_mut<Subsidialis>(@arx);
+        // Search directly rather using get_archon_state to save on unnecessary loops.
+        if (option::is_some(&find_dominus(&subsidialis.active, dominus_address)) ||
+            option::is_some(&find_dominus(&subsidialis.pending_active, dominus_address))) {
+            increase_joining_power(amount);
+        };
+    }
+
+    fun increase_joining_power(amount: u64) acquires Subsidialis {
+	let subsidialis = borrow_global_mut<Subsidialis>(@arx);
+	subsidialis.total_joining_power = subsidialis.total_joining_power + (amount as u128);
+	// TODO: Check for minimum / maximum power
+    }
+
+    /// Returns true is the specified archon is still participating in the subsidialis.
+    /// This includes domini which have requested to leave but are pending inactive.
+    public fun is_active_dominus(dominus_address: address): bool acquires Subsidialis {
+	assert_solaris_exists(dominus_address);
+	let dominus_state = get_dominus_state(dominus_address);
+	dominus_state == DOMINUS_STATUS_ACTIVE || dominus_state == DOMINUS_STATUS_PENDING_INACTIVE
+    }
+
     /// Returns the state of an dominus.
     public fun get_dominus_state(lock_address: address): u64
 	acquires Subsidialis
@@ -284,5 +327,14 @@ module arx::subsidialis {
     /// Ensures the subsidialis exists.
     public fun assert_exists() {
 	assert!(exists<Subsidialis>(@arx), error::not_found(ESUBSIDIALIS_NOT_FOUND));
+    }
+
+    /// Ensures a solaris exists of either ArxCoin or LP<ArxCoin, XUSDCoin, Stable> at the supplied
+    /// address.
+    fun assert_solaris_exists(dominus_address: address) {
+	assert!(
+	    solaris::exists_arxcoin(dominus_address) || solaris::exists_lp(dominus_address),
+	    error::invalid_argument(ESOLARIS_DOES_NOT_EXIST)
+	);
     }
 }
