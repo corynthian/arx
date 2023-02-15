@@ -2,7 +2,8 @@
 resolver = "2"
 
 members = [
-    "types",
+    "api",
+    "api/openapi-spec-generator",
     "config",
     "config/protocol-constants",
     "consensus",
@@ -64,6 +65,7 @@ members = [
     "storage/secure",
     "storage/secure/github",
     "storage/secure/vault",
+    "types",
 ]
 
 exclude = []
@@ -160,6 +162,7 @@ arx-node = { path = "node" }
 arx-node-resource-metrics = { path = "node/resource-metrics" }
 arx-num-variants = { path = "crates/arx-num-variants" }
 arx-openapi = { path = "crates/arx-openapi" }
+arx-openapi-spec-generator = { path = "api/openapi-spec-generator" }
 arx-package-builder = { path = "language/package-builder" }
 arx-peer-monitoring-service-types = { path = "network/peer-monitoring-service/types" }
 arx-proptest-helpers = { path = "crates/arx-proptest-helpers" }
