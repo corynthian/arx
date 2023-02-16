@@ -10,8 +10,8 @@ elm make src/Main.elm --output=server/static/output.js
 
 ## Running
 
-To run the interface (assumes quicklisp is installed):
+To serve the interface (assumes quicklisp is installed):
 ```
-$ sbcl
+$ cd server && sbcl
 * (load "main.lisp")
 ```
