@@ -1,0 +1,100 @@
+port module Js exposing (..)
+
+
+import Js.Data
+import Json.Encode
+import Json.Decode
+
+
+-- PORTS
+
+
+port sendCommand : Json.Encode.Value -> Cmd msg
+port receiveResult : (Json.Decode.Value -> msg) -> Sub msg
+
+
+-- MODEL
+
+
+type alias Model =
+    { }
+
+
+-- UPDATE
+
+
+type Command =
+    -- Asks JS to retrieve an account from local storage
+    FetchAccount
+    -- Asks JS to generate a new random account
+  | GenerateAccount
+    -- Asks JS to mint new coins on local / testnet to designated account
+  | Faucet String Int
+
+
+type Result =
+    Fetched (Maybe Js.Data.ArxAccount)
+  | Account Js.Data.ArxAccount
+  | Hashes (List String)
+  | Error String
+
+
+-- HELPERS
+
+
+encodeCommand : Command -> Json.Encode.Value
+encodeCommand cmd =
+    case cmd of
+        FetchAccount ->
+            Json.Encode.object [ ("commandType", Json.Encode.string "fetchAccount") ]
+        GenerateAccount ->
+            Json.Encode.object [ ("commandType", Json.Encode.string "generateAccount") ]
+        Faucet address amount ->
+            Json.Encode.object
+                [ ("commandType", Json.Encode.string "faucetArxCoin")
+                , ("address", Json.Encode.string address)
+                , ("amount", Json.Encode.int amount)
+                ]
+
+
+fetchedDecoder : Json.Decode.Decoder Result
+fetchedDecoder =
+    Json.Decode.map Fetched (Json.Decode.field "account" (Json.Decode.maybe Js.Data.arxAccountDecoder))
+
+
+accountDecoder : Json.Decode.Decoder Result
+accountDecoder =
+    Json.Decode.map Account (Json.Decode.field "account" Js.Data.arxAccountDecoder)
+
+
+hashesDecoder : Json.Decode.Decoder Result
+hashesDecoder =
+    Json.Decode.map Hashes (Json.Decode.field "hashes" (Json.Decode.list Json.Decode.string))
+
+
+decodeResult res =
+    case Json.Decode.decodeValue (Json.Decode.field "resultType" Json.Decode.string) res of
+        Ok resultType ->
+            case resultType of
+                "fetched" ->
+                    case Json.Decode.decodeValue fetchedDecoder res of
+                        Ok fetched ->
+                            fetched
+                        Err err ->
+                            Error (Json.Decode.errorToString err)
+                "account" ->
+                    case Json.Decode.decodeValue accountDecoder res of
+                        Ok account ->
+                            account
+                        Err err ->
+                            Error (Json.Decode.errorToString err)
+                "hashes" ->
+                    case Json.Decode.decodeValue hashesDecoder res of
+                        Ok hashes ->
+                            hashes
+                        Err err ->
+                            Error (Json.Decode.errorToString err)
+                _ ->
+                    Error "Unsupported result type"
+        Err err ->
+            Error (Json.Decode.errorToString err)
