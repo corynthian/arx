@@ -16,6 +16,7 @@
      (:head
       (:title "ARX")
       (:link :rel "stylesheet" :href "/static/css_init.css")
+      (:link :rel "icon" :type "image/x-icon" :href "/static/favicon.ico")
       (:script :type "text/javascript" :src "/static/index.global.js")
       (:script :type "text/javascript" :src "/static/output.js"))
      (:body
