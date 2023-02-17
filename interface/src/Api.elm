@@ -23,7 +23,7 @@ getAccountXUSDCoinResource matchResult address =
         (Accounts.getAccountResource address "0x1::coin::CoinStore<0x1::xusd_coin::XUSDCoin>" Nothing Data.coinStoreDecoder)
 
 
-getAccounLuxCoinResource matchResult address =
+getAccountLuxCoinResource matchResult address =
     send localNetworkUrl matchResult 
         (Accounts.getAccountResource address "0x1::coin::CoinStore<0x1::lux_coin::LuxCoin>" Nothing Data.coinStoreDecoder)
     
