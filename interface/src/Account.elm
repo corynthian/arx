@@ -6,8 +6,11 @@ import Css.Global
 import Generated.Api.Data as Data
 import Html.Styled exposing (..)
 import Html.Styled.Attributes as Attr
+import Html.Styled.Events exposing (onClick)
+import Js
 import Js.Data
 import Json.Decode
+import Layout.Centered as Centered
 import Styles.Elements as Elements
 import Styles.Fonts as Fonts
 import Styles.Theme as Theme
@@ -19,12 +22,18 @@ import Styles.Theme as Theme
 type alias Model =
     { arxAccount : Maybe Js.Data.ArxAccount
     , arxBalance : Int
+    , luxBalance : Int
+    , noxBalance : Int
+    , address : String
     }
 
 
 default arxAccount =
     { arxAccount = arxAccount
     , arxBalance = 0
+    , luxBalance = 0
+    , noxBalance = 0
+    , address = ""
     }
 
 
@@ -36,7 +45,11 @@ init arxAccount =
 
 
 type Msg
-    = ArxCoin (Data.MoveResource Data.CoinStore)
+    = SendJsCommand Js.Command
+    | Hashes (List String)
+    | ArxCoin (Data.MoveResource Data.CoinStore)
+    | LuxCoin (Data.MoveResource Data.CoinStore)
+    | NoxCoin (Data.MoveResource Data.CoinStore)
     | Error String
 
 
@@ -53,15 +66,31 @@ updateCredential credential model =
         Nothing ->
             ( model, Cmd.none )
         Just arxAccount ->
-            ( { model | arxAccount = Just arxAccount }
-            , Api.getAccountArxCoinResource (matchResult ArxCoin) arxAccount.accountAddress.hexString
+            let address = arxAccount.accountAddress.hexString in
+            ( { model | arxAccount = Just arxAccount, address = address }
+            , Cmd.batch [
+                 Api.getAccountArxCoinResource (matchResult ArxCoin) address
+--               , Api.getAccountLuxCoinResource (matchResult LuxCoin) address
+--               , Api.getAccountNoxCoinResource (matchResult NoxCoin) address
+              ]
             )
 
 
 update msg model =
     case msg of 
+        SendJsCommand cmd ->
+            ( model, Js.sendCommand (Js.encodeCommand cmd) )
+        Hashes _ ->
+            ( model, Api.getAccountArxCoinResource (matchResult ArxCoin) model.address )
         ArxCoin coinStore ->
+            let _ = Debug.log "account-arx" coinStore.data.coin.value in
             ( { model | arxBalance = parseBalanceString coinStore.data.coin.value }, Cmd.none )
+        LuxCoin coinStore ->
+            let _ = Debug.log "account-lux" coinStore.data.coin.value in
+            ( { model | luxBalance = parseBalanceString coinStore.data.coin.value }, Cmd.none )
+        NoxCoin coinStore ->
+            let _ = Debug.log "account-nox" coinStore.data.coin.value in
+            ( { model | noxBalance = parseBalanceString coinStore.data.coin.value }, Cmd.none )
         Error err ->
             let _ = Debug.log "account-error" err in
             ( model, Cmd.none )
@@ -70,31 +99,25 @@ update msg model =
 
 
 view model =
-    div []
-        [ div [ Attr.css containerStyle ]
-          [ div [ Attr.css leftStyle ] [ ]
-          , div [ Attr.css middleStyle ]
-              [ div [ Attr.css containerHeaderStyle ]
-                  [ text "ACCOUNT" ]
-              , div [ Attr.css containerBodyStyle ]
-                  [ div [ Attr.css listStyle ]
-                      [ div [ Attr.css listLeftStyle ]
-                          [ text "COINS" ]
-                      , div [ Attr.css listRightStyle ]
-                          [ text (String.fromInt model.arxBalance ++ " ARX / 0 XUSD / 0 ARX:XUSD") ]
-                      ]
-                  , div [ Attr.css listStyle ]
-                      [ div [ Attr.css listLeftStyle ]
-                          [ text "SEIGNORAGE" ]
-                      , div [ Attr.css listRightStyle ]
-                          [ text "0 LUX / 0 NOX" ]
-                      ]
-                  , Elements.btn [ ] --onClick (SendJsCommand (Js.Faucet address 10)) ]
-                      [ text "FAUCET ARX" ]
+    Centered.view
+        [ div [ Attr.css containerHeaderStyle ]
+              [ text "ACCOUNT" ]
+        , div [ Attr.css containerBodyStyle ]
+            [ div [ Attr.css listStyle ]
+                  [ div [ Attr.css listLeftStyle ]
+                        [ text "COINS" ]
+                  , div [ Attr.css listRightStyle ]
+                      [ text (String.fromInt model.arxBalance ++ " ARX / 0 XUSD / 0 ARX:XUSD") ]
                   ]
-              ]
-          , div [ Attr.css rightStyle ] [ ]
-          ]
+            , div [ Attr.css listStyle ]
+                [ div [ Attr.css listLeftStyle ]
+                      [ text "SEIGNORAGE" ]
+                , div [ Attr.css listRightStyle ]
+                    [ text "0 LUX / 0 NOX" ]
+                ]
+            , Elements.btn [ onClick (SendJsCommand (Js.Faucet model.address 10)) ]
+                [ text "FAUCET ARX" ]
+            ]
         ]
 
 
@@ -117,33 +140,6 @@ containerStyle =
     , Css.margin (Css.rem 1) 
     ]
 
-
-leftStyle =
-    [ Css.displayFlex
-    , Css.flexDirection Css.column
-    , Css.flexGrow <| Css.int 1
-    , Css.margin (Css.rem 1)
-    , Css.width (Css.pct 10)
-    ]
-
-
-middleStyle =
-    [ Css.displayFlex
-    , Css.flexDirection Css.column
-    , Css.flexGrow <| Css.int 1
-    , Css.margin (Css.rem 1)
-    , Css.width (Css.pct 33)
-    ]
-
-
-rightStyle =
-    [ Css.displayFlex
-    , Css.flexDirection Css.column
-    , Css.flexGrow <| Css.int 3
-    , Css.margin (Css.rem 1)
-    , Css.width (Css.pct 10)
-    ]
-    
 
 containerHeaderStyle =
     [ Css.displayFlex
