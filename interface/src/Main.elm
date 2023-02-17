@@ -100,26 +100,31 @@ type Msg =
   | ReceiveJsResult Json.Decode.Value
 
 
+updateCredentialWithAccount subMsg model =
+    let ( credential, cmdMsg ) = Credential.update subMsg model.credential in
+    let ( account, accountMsg ) = Account.updateCredential credential model.account in
+    ( { model | credential = credential, account = account }
+    , Cmd.batch
+          [ Cmd.map CredentialMsg cmdMsg
+          , Cmd.map AccountMsg accountMsg
+          ]
+    )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    let _ = Debug.log "internal-click" url.path in
                     ( model, Nav.pushUrl model.key (Url.toString url) )
                 Browser.External href ->
-                    let _ = Debug.log "external-click " href in
                     ( model, Nav.load href )
         UrlChanged url ->
-            let _ = Debug.log "url-changed" url.path in
             initWithUrl model url
         CredentialMsg subMsg ->
-            let ( credential, cmdMsg ) = Credential.update subMsg model.credential in
-            let ( account, accountMsg ) = Account.updateCredential credential model.account in
-            ( { model | credential = credential, account = account }
-            , Cmd.map CredentialMsg cmdMsg
-            )
+            let _ = Debug.log "main" "updating credentials" in
+            updateCredentialWithAccount subMsg model
         AccountMsg subMsg ->
             let ( subModel, cmdMsg ) = Account.update subMsg model.account in
             ( { model | account = subModel }, Cmd.map AccountMsg cmdMsg )
@@ -129,17 +134,12 @@ update msg model =
         ReceiveJsResult res ->
             case Js.decodeResult res of
                 Js.Fetched maybeAccount ->
-                    let (subModel, cmdMsg) =
-                            Credential.update (Credential.Fetched maybeAccount) model.credential
-                    in
-                    ( { model | credential = subModel }, Cmd.map CredentialMsg cmdMsg )
+                    updateCredentialWithAccount (Credential.Fetched maybeAccount) model
                 Js.Account account ->
-                    let (subModel, cmdMsg) =
-                            Credential.update (Credential.ArxAccount account) model.credential
-                    in
-                    ( { model | credential = subModel }, Cmd.map CredentialMsg cmdMsg )
+                    updateCredentialWithAccount (Credential.ArxAccount account) model
                 Js.Hashes hashes ->
-                    ( { model | responses = model.responses ++ hashes }, Cmd.none )
+                    let ( subModel, cmdMsg ) = Account.update (Account.Hashes hashes) model.account in
+                    ( { model | account = subModel }, Cmd.map AccountMsg cmdMsg )
                 Js.Error errorString ->
                     ( { model | responses = model.responses ++ [ errorString ] }, Cmd.none )
 
@@ -150,9 +150,9 @@ update msg model =
 loadView model =
     case model.url.path of
         "/" ->
-            Account.view model.account
+            map AccountMsg (Account.view model.account)
         "/account" ->
-            Account.view model.account
+            map AccountMsg (Account.view model.account)
         "/subsidialis" ->
             Subsidialis.view model.subsidialis.data
         "/subsidialis/add_coins" ->

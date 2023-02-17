@@ -56,6 +56,7 @@ update msg model =
                 Nothing ->
                     ( model, Js.sendCommand (Js.encodeCommand Js.GenerateAccount) )
         ArxAccount arxAccount ->
+            let _ = Debug.log "credential" arxAccount in
             ( { model | arxAccount = Just arxAccount }, Cmd.none )
         Error err ->
             let _ = Debug.log "credential-error" err in
