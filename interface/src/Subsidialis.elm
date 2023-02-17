@@ -166,7 +166,6 @@ containerHeaderCss =
     , Css.color Theme.geyser
     , Css.backgroundColor Theme.mirage
     , Css.borderRadius (Css.px 10)
---    , Css.width (Css.pct 100)
     , Fonts.barlowCondensed
     ]
 
@@ -188,10 +187,13 @@ css =
     , Css.listStyle Css.none
     , Css.Global.descendants
         [ Css.Global.selector ".listElement a"
-            [ Css.color Theme.mirage
+            [ Css.color Theme.havelockBlue
+            , Css.backgroundColor Theme.mirage
             , Css.textDecoration Css.none
             , Fonts.barlowCondensed
             , Css.fontSize (Css.rem 1.25)
+            , Css.padding (Css.rem 1)
+            , Css.borderRadius (Css.rem 1)
             , Css.hover [
                    Css.textDecoration3  Css.underline Css.solid Theme.mirage
               ]
