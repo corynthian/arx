@@ -4,6 +4,10 @@ module Subsidialis.AddCoins exposing (..)
 import Css
 import Html.Styled exposing (..)
 import Html.Styled.Attributes as Attr
+import Html.Styled.Events exposing (onClick, onInput)
+import Js
+import Js.Data as Data
+import Json.Decode
 import Layout.Centered as Centered
 import Styles.Elements as Elements
 import Styles.Fonts as Fonts
@@ -13,10 +17,22 @@ import Styles.Theme as Theme
 -- MODEL
 
 
-type alias Model = { }
+type InputStatus =
+    Valid
+  | InvalidNumber
+  | MaximumExceeded
 
 
-default = { }
+type alias Model = {
+      arxAccountObject : Maybe Data.ArxAccountObject
+    , amount : String
+    }
+
+
+default =
+    { arxAccountObject = Nothing
+    , amount = "0"
+    }
 
 
 init = ( default, Cmd.none )
@@ -25,12 +41,33 @@ init = ( default, Cmd.none )
 -- UPDATE
 
 
-type Msg = 
-    AddCoins Int
+type Msg
+    = SendJsCommand Js.Command
+    | UpdateAmount String
+    | AddCoins
+    | Error String
 
 
 update msg model =
-    ( model, Cmd.none )
+    case msg of
+        SendJsCommand cmd ->
+            ( model, Js.sendCommand (Js.encodeCommand cmd) )
+        UpdateAmount amount ->
+            ( { model | amount = amount }, Cmd.none )
+        AddCoins ->
+            case model.arxAccountObject of
+                Just arxAccountObject ->
+                    let cmd = Js.SubsidialisAddCoins arxAccountObject (parseAmountString model.amount) in
+                    ( model, Js.sendCommand (Js.encodeCommand cmd) )
+                Nothing ->
+                    ( model, Cmd.none )
+        Error err ->
+            let _ = Debug.log "add-coins-error" err in
+            ( model, Cmd.none )
+
+
+updateArxAccount arxAccountObject model =
+    ( { model | arxAccountObject = arxAccountObject }, Cmd.none )
 
 
 -- VIEW
@@ -45,13 +82,24 @@ view model =
               [ div [ Attr.css Elements.formLeftStyle ]
                 [ text "AMOUNT" ]
               , div [ Attr.css Elements.formRightStyle ]
-                [ input [ Attr.css inputStyle ] []
+                [ input [ Attr.css inputStyle, onInput UpdateAmount ] []
                 , Elements.btn [] [ text "MAX" ]
                 ]
               ]
-            , Elements.btn [ ] [ text "ADD" ]
+            , Elements.btn [ onClick AddCoins ] [ text "ADD" ]
             ]
         ]
+
+
+-- HELPERS
+
+
+parseAmountString s =
+    case Json.Decode.decodeString Json.Decode.int s of
+        Ok amount ->
+            amount
+        Err _ ->
+            0
 
 
 -- STYLES
