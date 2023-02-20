@@ -54,7 +54,7 @@ default url key credential =
     { url = url
     , key = key
     , credential = credential
-    , account = Account.default credential.arxAccount
+    , account = Account.default credential.arxAccountObject
     , subsidialis = Subsidialis.default
     , responses = []
     }
@@ -84,7 +84,7 @@ initWithUrl model url =
             , Cmd.map SubsidialisMsg subCmd
             )
         _ ->
-            let (subModel, subCmd) = Account.init model.credential.arxAccount in
+            let (subModel, subCmd) = Account.init model.credential.arxAccountObject in
             ( { model | url = url, account = subModel }, Cmd.map AccountMsg subCmd )
 
 
@@ -100,13 +100,18 @@ type Msg =
   | ReceiveJsResult Json.Decode.Value
 
 
-updateCredentialWithAccount subMsg model =
+updateCredentials subMsg model =
     let ( credential, cmdMsg ) = Credential.update subMsg model.credential in
     let ( account, accountMsg ) = Account.updateCredential credential model.account in
-    ( { model | credential = credential, account = account }
+    let ( addCoins, addCoinsMsg )
+            = Subsidialis.AddCoins.updateArxAccount credential.arxAccountObject model.subsidialis.addCoins
+    in
+    let subsidialis = model.subsidialis in
+    ( { model | credential = credential, account = account, subsidialis = { subsidialis | addCoins = addCoins } }
     , Cmd.batch
           [ Cmd.map CredentialMsg cmdMsg
           , Cmd.map AccountMsg accountMsg
+          , Cmd.map SubsidialisMsg (Cmd.map Subsidialis.AddCoinsMsg addCoinsMsg)
           ]
     )
 
@@ -124,7 +129,7 @@ update msg model =
             initWithUrl model url
         CredentialMsg subMsg ->
             let _ = Debug.log "main" "updating credentials" in
-            updateCredentialWithAccount subMsg model
+            updateCredentials subMsg model
         AccountMsg subMsg ->
             let ( subModel, cmdMsg ) = Account.update subMsg model.account in
             ( { model | account = subModel }, Cmd.map AccountMsg cmdMsg )
@@ -134,12 +139,14 @@ update msg model =
         ReceiveJsResult res ->
             case Js.decodeResult res of
                 Js.Fetched maybeAccount ->
-                    updateCredentialWithAccount (Credential.Fetched maybeAccount) model
+                    updateCredentials (Credential.Fetched maybeAccount) model
                 Js.Account account ->
-                    updateCredentialWithAccount (Credential.ArxAccount account) model
+                    updateCredentials (Credential.ArxAccountObject account) model
                 Js.Hashes hashes ->
                     let ( subModel, cmdMsg ) = Account.update (Account.Hashes hashes) model.account in
                     ( { model | account = subModel }, Cmd.map AccountMsg cmdMsg )
+                Js.TxnHash hash ->
+                    ( model, Cmd.none )
                 Js.Error errorString ->
                     ( { model | responses = model.responses ++ [ errorString ] }, Cmd.none )
 
@@ -156,7 +163,8 @@ loadView model =
         "/subsidialis" ->
             Subsidialis.view model.subsidialis.data
         "/subsidialis/add_coins" ->
-            Subsidialis.AddCoins.view model.subsidialis.addCoins
+            map SubsidialisMsg
+                (map Subsidialis.AddCoinsMsg (Subsidialis.AddCoins.view model.subsidialis.addCoins))
         _ ->
             div []
                 [ text "Responses"

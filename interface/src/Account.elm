@@ -20,7 +20,7 @@ import Styles.Theme as Theme
 
 
 type alias Model =
-    { arxAccount : Maybe Js.Data.ArxAccount
+    { arxAccountObject : Maybe Js.Data.ArxAccountObject
     , arxBalance : Int
     , luxBalance : Int
     , noxBalance : Int
@@ -28,8 +28,8 @@ type alias Model =
     }
 
 
-default arxAccount =
-    { arxAccount = arxAccount
+default arxAccountObject =
+    { arxAccountObject = arxAccountObject
     , arxBalance = 0
     , luxBalance = 0
     , noxBalance = 0
@@ -37,8 +37,8 @@ default arxAccount =
     }
 
 
-init arxAccount =
-    ( default arxAccount, Cmd.none )
+init arxAccountObject =
+    ( default arxAccountObject, Cmd.none )
 
 
 -- UPDATE
@@ -62,12 +62,12 @@ matchResult f r =
 
 
 updateCredential credential model =
-    case credential.arxAccount of
+    case credential.arxAccountObject of
         Nothing ->
             ( model, Cmd.none )
-        Just arxAccount ->
-            let address = arxAccount.accountAddress.hexString in
-            ( { model | arxAccount = Just arxAccount, address = address }
+        Just arxAccountObject ->
+            let address = arxAccountObject.address in
+            ( { model | arxAccountObject = Just arxAccountObject, address = address }
             , Cmd.batch [
                  Api.getAccountArxCoinResource (matchResult ArxCoin) address
 --               , Api.getAccountLuxCoinResource (matchResult LuxCoin) address
@@ -115,7 +115,7 @@ view model =
                 , div [ Attr.css listRightStyle ]
                     [ text "0 LUX / 0 NOX" ]
                 ]
-            , Elements.btn [ onClick (SendJsCommand (Js.Faucet model.address 10)) ]
+            , Elements.btn [ onClick (SendJsCommand (Js.Faucet model.address 1000000)) ]
                 [ text "FAUCET ARX" ]
             ]
         ]

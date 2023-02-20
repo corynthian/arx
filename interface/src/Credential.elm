@@ -18,12 +18,12 @@ import Styles.Theme as Theme
 
 
 type alias Model =
-    { arxAccount : Maybe Js.Data.ArxAccount }
+    { arxAccountObject : Maybe Js.Data.ArxAccountObject }
 
 
 init : (Model, Cmd Msg)
 init =
-    ( { arxAccount = Nothing }, Js.sendCommand (Js.encodeCommand Js.FetchAccount) )
+    ( { arxAccountObject = Nothing }, Js.sendCommand (Js.encodeCommand Js.FetchAccount) )
 
 
 -- UPDATE
@@ -31,8 +31,8 @@ init =
 
 type Msg =
     SendJsCommand Js.Command
-  | Fetched (Maybe Js.Data.ArxAccount)
-  | ArxAccount Js.Data.ArxAccount
+  | Fetched (Maybe Js.Data.ArxAccountObject)
+  | ArxAccountObject Js.Data.ArxAccountObject
   | Error String
 
 
@@ -49,15 +49,15 @@ update msg model =
     case msg of
         SendJsCommand cmd ->
             ( model, Js.sendCommand (Js.encodeCommand cmd) )
-        Fetched maybeArxAccount ->
-            case maybeArxAccount of
-                Just arxAccount ->
-                    ( { model | arxAccount = Just arxAccount }, Cmd.none )
+        Fetched maybeArxAccountObject ->
+            case maybeArxAccountObject of
+                Just arxAccountObject ->
+                    ( { model | arxAccountObject = Just arxAccountObject }, Cmd.none )
                 Nothing ->
                     ( model, Js.sendCommand (Js.encodeCommand Js.GenerateAccount) )
-        ArxAccount arxAccount ->
-            let _ = Debug.log "credential" arxAccount in
-            ( { model | arxAccount = Just arxAccount }, Cmd.none )
+        ArxAccountObject arxAccountObject ->
+            let _ = Debug.log "credential" arxAccountObject in
+            ( { model | arxAccountObject = Just arxAccountObject }, Cmd.none )
         Error err ->
             let _ = Debug.log "credential-error" err in
             ( model, Cmd.none )
@@ -73,9 +73,9 @@ renderAddress address =
 
 
 view model =
-    case model.arxAccount of
-        Just arxAccount ->
-            let address = arxAccount.accountAddress.hexString in
+    case model.arxAccountObject of
+        Just arxAccountObject ->
+            let address = arxAccountObject.address in
             div [ A.css [ Css.color Theme.havelockBlue ] ]
                 [ Elements.listElement [ A.class "listElement" ]
                       [ a [ A.href "/account" ] [ text (renderAddress address) ] ]

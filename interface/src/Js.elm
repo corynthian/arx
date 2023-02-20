@@ -30,12 +30,15 @@ type Command =
   | GenerateAccount
     -- Asks JS to mint new coins on local / testnet to designated account
   | Faucet String Int
+    -- Asks JS to request to add coins to a subsidialis
+  | SubsidialisAddCoins Js.Data.ArxAccountObject Int
 
 
 type Result =
-    Fetched (Maybe Js.Data.ArxAccount)
-  | Account Js.Data.ArxAccount
+    Fetched (Maybe Js.Data.ArxAccountObject)
+  | Account Js.Data.ArxAccountObject
   | Hashes (List String)
+  | TxnHash String
   | Error String
 
 
@@ -55,21 +58,32 @@ encodeCommand cmd =
                 , ("address", Json.Encode.string address)
                 , ("amount", Json.Encode.int amount)
                 ]
+        SubsidialisAddCoins arxAccount amount ->
+            Json.Encode.object
+                [ ("commandType", Json.Encode.string "subsidialisAddCoins")
+                , ("account", Js.Data.encodeArxAccountObject arxAccount)
+                , ("amount", Json.Encode.int amount)
+                ]
 
 
 fetchedDecoder : Json.Decode.Decoder Result
 fetchedDecoder =
-    Json.Decode.map Fetched (Json.Decode.field "account" (Json.Decode.maybe Js.Data.arxAccountDecoder))
+    Json.Decode.map Fetched
+        (Json.Decode.field "account" (Json.Decode.maybe Js.Data.arxAccountObjectDecoder))
 
 
 accountDecoder : Json.Decode.Decoder Result
 accountDecoder =
-    Json.Decode.map Account (Json.Decode.field "account" Js.Data.arxAccountDecoder)
+    Json.Decode.map Account (Json.Decode.field "account" Js.Data.arxAccountObjectDecoder)
 
 
 hashesDecoder : Json.Decode.Decoder Result
 hashesDecoder =
     Json.Decode.map Hashes (Json.Decode.field "hashes" (Json.Decode.list Json.Decode.string))
+
+
+hashDecoder =
+    Json.Decode.map TxnHash (Json.Decode.field "hash" Json.Decode.string)
 
 
 decodeResult res =
@@ -92,6 +106,12 @@ decodeResult res =
                     case Json.Decode.decodeValue hashesDecoder res of
                         Ok hashes ->
                             hashes
+                        Err err ->
+                            Error (Json.Decode.errorToString err)
+                "hash" ->
+                    case Json.Decode.decodeValue hashDecoder res of
+                        Ok hash ->
+                            hash
                         Err err ->
                             Error (Json.Decode.errorToString err)
                 _ ->
