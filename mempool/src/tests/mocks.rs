@@ -1,3 +1,4 @@
+// Copyright (c) Diem Core Contributors
 // Copyright (c) Arx
 // SPDX-License-Identifier: Apache-2.0
 
@@ -7,7 +8,7 @@ use crate::{
     MempoolClientSender, QuorumStoreRequest,
 };
 use anyhow::{format_err, Result};
-use arx_channels::{self, arx_channel, message_queues::QueueStyle};
+use arx_channel::{self, channel, message_queues::QueueStyle};
 use arx_config::{
     config::{NetworkConfig, NodeConfig},
     network_id::NetworkId,
@@ -57,7 +58,7 @@ impl MockSharedMempool {
     /// Returns the runtime on which the shared mempool is running
     /// and the channel through which shared mempool receives client events.
     pub fn new() -> Self {
-        let runtime = arx_runtimes::spawn_named_runtime("shared-mem".into(), None);
+        let runtime = arx_tokio_runtime::spawn_named_runtime("shared-mem".into(), None);
         let (ac_client, mempool, quorum_store_sender, mempool_notifier) = Self::start(
             runtime.handle(),
             &DbReaderWriter::new(MockDbReaderWriter),
@@ -106,9 +107,9 @@ impl MockSharedMempool {
         config.validator_network = Some(NetworkConfig::network_with_id(NetworkId::Validator));
 
         let mempool = Arc::new(Mutex::new(CoreMempool::new(&config)));
-        let (network_reqs_tx, _network_reqs_rx) = arx_channel::new(QueueStyle::FIFO, 8, None);
-        let (connection_reqs_tx, _) = arx_channel::new(QueueStyle::FIFO, 8, None);
-        let (_network_notifs_tx, network_notifs_rx) = arx_channel::new(QueueStyle::FIFO, 8, None);
+        let (network_reqs_tx, _network_reqs_rx) = channel::new(QueueStyle::FIFO, 8, None);
+        let (connection_reqs_tx, _) = channel::new(QueueStyle::FIFO, 8, None);
+        let (_network_notifs_tx, network_notifs_rx) = channel::new(QueueStyle::FIFO, 8, None);
         let (_, conn_notifs_rx) = conn_notifs_channel::new();
         let network_sender = NetworkSender::new(
             PeerManagerRequestSender::new(network_reqs_tx),
@@ -119,7 +120,7 @@ impl MockSharedMempool {
         let (quorum_store_sender, quorum_store_receiver) = mpsc::channel(1_024);
         let (mempool_notifier, mempool_listener) =
             arx_mempool_notifications::new_mempool_notifier_listener_pair();
-        let (reconfig_sender, reconfig_events) = arx_channel::new(QueueStyle::LIFO, 1, None);
+        let (reconfig_sender, reconfig_events) = channel::new(QueueStyle::LIFO, 1, None);
         let reconfig_event_subscriber = ReconfigNotificationListener {
             notification_receiver: reconfig_events,
         };
