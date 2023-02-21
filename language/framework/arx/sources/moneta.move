@@ -81,9 +81,9 @@ module arx::moneta {
 	// FIXME: This math loses a lot of precision / hacky / erroneous
 	let arx_power = subsidialis::get_total_active_power<ArxCoin>();
 	let lp_power = subsidialis::get_total_active_power<LP<ArxCoin, XUSDCoin, Stable>>();
-	let combined_power = ((arx_power + lp_power as u128) as u64);
-	let arx_power_fraction = uq64x64::decode(uq64x64::fraction(arx_power, combined_power));
-	let lp_power_fraction = uq64x64::decode(uq64x64::fraction(lp_power, combined_power));
+	let combined_power = arx_power + lp_power;
+	let arx_power_fraction = uq64x64::decode(uq64x64::fraction128_128(arx_power, combined_power));
+	let lp_power_fraction = uq64x64::decode(uq64x64::fraction128_128(lp_power, combined_power));
 	let arx_mints = arx_power_fraction * share_of_mints;
 	let lp_mints = lp_power_fraction * share_of_mints;
 	(arx_mints, lp_mints)
