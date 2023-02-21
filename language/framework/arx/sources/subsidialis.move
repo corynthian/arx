@@ -105,10 +105,13 @@ module arx::subsidialis {
 	acquires Subsidialis, SubsidialisEvents
     {
 	let solaris_address = signer::address_of(owner);
-	// Ensure a solaris exists at the supplied address.
-	solaris::assert_exists<CoinType>(solaris_address);
 
 	// TODO: Ensure the solaris is not in senatus.
+
+	// If a solaris for the provided `CoinType` does not exist, then create one.
+	if (!solaris::exists_cointype<CoinType>(solaris_address)) {
+	    solaris::initialize_owner<CoinType>(owner);
+	};
 
 	// Ensure the solaris is not already an active dominus.
 	assert!(
@@ -246,6 +249,8 @@ module arx::subsidialis {
 	acquires Subsidialis
     {
 	let dominus_address = signer::address_of(owner);
+
+	// Ensure a solaris exists at the supplied address (created by joining the subsidialis).
 	solaris::assert_exists<CoinType>(dominus_address);
 
 	// Add coins and add pending_active seignorage if the dominus is currently active in order to
@@ -257,7 +262,7 @@ module arx::subsidialis {
 	    solaris::add_active_coins<CoinType>(owner, amount);
 	};
 
-        // Only track and validate lux power increases for active and pending_active dominuss.
+        // Only track and validate lux power increases for active and pending_active domini.
         // pending_inactive dominui will be removed from the subsidialis in the next epoch.
         // Inactive domini total stake will be tracked when they join the subsidialis.
         let subsidialis = borrow_global_mut<Subsidialis>(@arx);
