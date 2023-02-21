@@ -262,11 +262,11 @@ The XUSDCoinCapability (only used for minting XUSDCoin whilst testing).
 
 <pre><code><b>fun</b> <a href="moneta.md#0x1_moneta_calculate_subsidialis_mints">calculate_subsidialis_mints</a>(share_of_mints: u64): (u64, u64) {
 	// FIXME: This math loses a lot of precision / hacky / erroneous
-	<b>let</b> arx_power = (<a href="subsidialis.md#0x1_subsidialis_get_total_active_power">subsidialis::get_total_active_power</a>&lt;ArxCoin&gt;() <b>as</b> u64);
-	<b>let</b> lp_power = (<a href="subsidialis.md#0x1_subsidialis_get_total_active_power">subsidialis::get_total_active_power</a>&lt;LP&lt;ArxCoin, XUSDCoin, Stable&gt;&gt;() <b>as</b> u64);
-	<b>let</b> combined_power = (((arx_power <b>as</b> u128) + (lp_power <b>as</b> u128)) <b>as</b> u64);
-	<b>let</b> arx_power_fraction = <a href="../../std/doc/uq64x64.md#0x1_uq64x64_decode">uq64x64::decode</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction">uq64x64::fraction</a>(arx_power, combined_power));
-	<b>let</b> lp_power_fraction = <a href="../../std/doc/uq64x64.md#0x1_uq64x64_decode">uq64x64::decode</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction">uq64x64::fraction</a>(lp_power, combined_power));
+	<b>let</b> arx_power = <a href="subsidialis.md#0x1_subsidialis_get_total_active_power">subsidialis::get_total_active_power</a>&lt;ArxCoin&gt;();
+	<b>let</b> lp_power = <a href="subsidialis.md#0x1_subsidialis_get_total_active_power">subsidialis::get_total_active_power</a>&lt;LP&lt;ArxCoin, XUSDCoin, Stable&gt;&gt;();
+	<b>let</b> combined_power = arx_power + lp_power;
+	<b>let</b> arx_power_fraction = <a href="../../std/doc/uq64x64.md#0x1_uq64x64_decode">uq64x64::decode</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction128_128">uq64x64::fraction128_128</a>(arx_power, combined_power));
+	<b>let</b> lp_power_fraction = <a href="../../std/doc/uq64x64.md#0x1_uq64x64_decode">uq64x64::decode</a>(<a href="../../std/doc/uq64x64.md#0x1_uq64x64_fraction128_128">uq64x64::fraction128_128</a>(lp_power, combined_power));
 	<b>let</b> arx_mints = arx_power_fraction * share_of_mints;
 	<b>let</b> lp_mints = lp_power_fraction * share_of_mints;
 	(arx_mints, lp_mints)

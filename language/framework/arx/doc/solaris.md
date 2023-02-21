@@ -8,7 +8,8 @@
 -  [Resource `Solaris`](#0x1_solaris_Solaris)
 -  [Resource `SolarisEvents`](#0x1_solaris_SolarisEvents)
 -  [Struct `SolarisInitializedEvent`](#0x1_solaris_SolarisInitializedEvent)
--  [Struct `SolarisAddCoinsEvent`](#0x1_solaris_SolarisAddCoinsEvent)
+-  [Struct `SolarisAddActiveCoinsEvent`](#0x1_solaris_SolarisAddActiveCoinsEvent)
+-  [Struct `SolarisAddPendingCoinsEvent`](#0x1_solaris_SolarisAddPendingCoinsEvent)
 -  [Struct `SolarisRemoveCoinsEvent`](#0x1_solaris_SolarisRemoveCoinsEvent)
 -  [Struct `SolarisWithdrawCoinsEvent`](#0x1_solaris_SolarisWithdrawCoinsEvent)
 -  [Resource `SeignorageCapability`](#0x1_solaris_SeignorageCapability)
@@ -16,28 +17,38 @@
 -  [Function `initialize_owner`](#0x1_solaris_initialize_owner)
 -  [Function `initialize_allocation`](#0x1_solaris_initialize_allocation)
 -  [Function `add_coins`](#0x1_solaris_add_coins)
+-  [Function `add_active_coins`](#0x1_solaris_add_active_coins)
+-  [Function `add_pending_coins`](#0x1_solaris_add_pending_coins)
 -  [Function `remove_coins`](#0x1_solaris_remove_coins)
 -  [Function `withdraw_coins`](#0x1_solaris_withdraw_coins)
 -  [Function `reactivate_coins`](#0x1_solaris_reactivate_coins)
 -  [Function `on_subsidialis_update`](#0x1_solaris_on_subsidialis_update)
 -  [Function `on_subsidialis_deactivate`](#0x1_solaris_on_subsidialis_deactivate)
 -  [Function `get_active_lux_value`](#0x1_solaris_get_active_lux_value)
--  [Function `mint_base_seignorage`](#0x1_solaris_mint_base_seignorage)
+-  [Function `mint_active_seignorage`](#0x1_solaris_mint_active_seignorage)
+-  [Function `mint_pending_seignorage`](#0x1_solaris_mint_pending_seignorage)
 -  [Function `assert_exists`](#0x1_solaris_assert_exists)
+-  [Function `exists_arxcoin`](#0x1_solaris_exists_arxcoin)
+-  [Function `exists_lp`](#0x1_solaris_exists_lp)
+-  [Function `exists_cointype`](#0x1_solaris_exists_cointype)
 -  [Function `store_seignorage_caps`](#0x1_solaris_store_seignorage_caps)
 
 
 <pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
+<b>use</b> <a href="arx_coin.md#0x1_arx_coin">0x1::arx_coin</a>;
 <b>use</b> <a href="coin.md#0x1_coin">0x1::coin</a>;
+<b>use</b> <a href="../../std/doc/curves.md#0x1_curves">0x1::curves</a>;
 <b>use</b> <a href="../../std/doc/error.md#0x1_error">0x1::error</a>;
 <b>use</b> <a href="event.md#0x1_event">0x1::event</a>;
 <b>use</b> <a href="forma.md#0x1_forma">0x1::forma</a>;
+<b>use</b> <a href="lp_coin.md#0x1_lp_coin">0x1::lp_coin</a>;
 <b>use</b> <a href="lux_coin.md#0x1_lux_coin">0x1::lux_coin</a>;
 <b>use</b> <a href="../../std/doc/math64.md#0x1_math64">0x1::math64</a>;
 <b>use</b> <a href="nox_coin.md#0x1_nox_coin">0x1::nox_coin</a>;
 <b>use</b> <a href="../../std/doc/signer.md#0x1_signer">0x1::signer</a>;
 <b>use</b> <a href="system_addresses.md#0x1_system_addresses">0x1::system_addresses</a>;
 <b>use</b> <a href="../../std/doc/uq64x64.md#0x1_uq64x64">0x1::uq64x64</a>;
+<b>use</b> <a href="xusd_coin.md#0x1_xusd_coin">0x1::xusd_coin</a>;
 </code></pre>
 
 
@@ -141,7 +152,13 @@ Stores the event handles of the solaris.
 
 </dd>
 <dt>
-<code>solaris_add_coins_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="solaris.md#0x1_solaris_SolarisAddCoinsEvent">solaris::SolarisAddCoinsEvent</a>&lt;CoinType&gt;&gt;</code>
+<code>solaris_add_active_coins_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="solaris.md#0x1_solaris_SolarisAddActiveCoinsEvent">solaris::SolarisAddActiveCoinsEvent</a>&lt;CoinType&gt;&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>solaris_add_pending_coins_events: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="solaris.md#0x1_solaris_SolarisAddPendingCoinsEvent">solaris::SolarisAddPendingCoinsEvent</a>&lt;CoinType&gt;&gt;</code>
 </dt>
 <dd>
 
@@ -167,7 +184,7 @@ Stores the event handles of the solaris.
 
 ## Struct `SolarisInitializedEvent`
 
-Triggers when the subsidialis has been initialized.
+Triggers when the solaris has been initialized.
 
 
 <pre><code><b>struct</b> <a href="solaris.md#0x1_solaris_SolarisInitializedEvent">SolarisInitializedEvent</a>&lt;CoinType&gt; <b>has</b> drop, store
@@ -191,14 +208,60 @@ Triggers when the subsidialis has been initialized.
 
 </details>
 
-<a name="0x1_solaris_SolarisAddCoinsEvent"></a>
+<a name="0x1_solaris_SolarisAddActiveCoinsEvent"></a>
 
-## Struct `SolarisAddCoinsEvent`
+## Struct `SolarisAddActiveCoinsEvent`
 
-Triggers when the subsidialis has been initialized.
+Triggers when the subsidialis or the senatus add coins which receive immediate seignorage.
 
 
-<pre><code><b>struct</b> <a href="solaris.md#0x1_solaris_SolarisAddCoinsEvent">SolarisAddCoinsEvent</a>&lt;CoinType&gt; <b>has</b> drop, store
+<pre><code><b>struct</b> <a href="solaris.md#0x1_solaris_SolarisAddActiveCoinsEvent">SolarisAddActiveCoinsEvent</a>&lt;CoinType&gt; <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>solaris_address: <b>address</b></code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>lux_mint_amount: u64</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>nox_mint_amount: u64</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>added_amount: u64</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a name="0x1_solaris_SolarisAddPendingCoinsEvent"></a>
+
+## Struct `SolarisAddPendingCoinsEvent`
+
+Triggers when the subsidialis or the senatus add coins which receive deferred seignorage.
+
+
+<pre><code><b>struct</b> <a href="solaris.md#0x1_solaris_SolarisAddPendingCoinsEvent">SolarisAddPendingCoinsEvent</a>&lt;CoinType&gt; <b>has</b> drop, store
 </code></pre>
 
 
@@ -396,7 +459,7 @@ A solaris for a specified coin type was not found at the supplied address.
 Initialises a new solaris assigned to the provided owner.
 
 
-<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_initialize_owner">initialize_owner</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="solaris.md#0x1_solaris_initialize_owner">initialize_owner</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>)
 </code></pre>
 
 
@@ -405,7 +468,7 @@ Initialises a new solaris assigned to the provided owner.
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_initialize_owner">initialize_owner</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>) {
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="solaris.md#0x1_solaris_initialize_owner">initialize_owner</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>) {
 	// Ensure a <a href="forma.md#0x1_forma">forma</a> <b>exists</b> for this <a href="solaris.md#0x1_solaris">solaris</a>.
 	<a href="forma.md#0x1_forma_assert_exists">forma::assert_exists</a>&lt;CoinType&gt;();
 	// Ensure a <a href="solaris.md#0x1_solaris">solaris</a> does not already exist for this owner.
@@ -425,7 +488,8 @@ Initialises a new solaris assigned to the provided owner.
 	});
 	<b>let</b> solaris_events = <a href="solaris.md#0x1_solaris_SolarisEvents">SolarisEvents</a>&lt;CoinType&gt; {
 	    solaris_initialized_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(owner),
-	    solaris_add_coins_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(owner),
+	    solaris_add_active_coins_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(owner),
+	    solaris_add_pending_coins_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(owner),
 	    solaris_remove_coins_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(owner),
 	    solaris_withdraw_coins_events: <a href="account.md#0x1_account_new_event_handle">account::new_event_handle</a>(owner),
 	};
@@ -465,7 +529,7 @@ Initialises a new solaris allocation.
 	<a href="solaris.md#0x1_solaris_initialize_owner">initialize_owner</a>&lt;CoinType&gt;(owner);
 
 	<b>if</b> (initial_allocation &gt; 0) {
-	    <a href="solaris.md#0x1_solaris_add_coins">add_coins</a>&lt;CoinType&gt;(owner, initial_allocation);
+	    <a href="solaris.md#0x1_solaris_add_active_coins">add_active_coins</a>&lt;CoinType&gt;(owner, initial_allocation);
 	}
 }
 </code></pre>
@@ -478,10 +542,10 @@ Initialises a new solaris allocation.
 
 ## Function `add_coins`
 
-Add forma coins to an existing solaris. External.
+Add coins to an existing solaris.
 
 
-<pre><code><b>public</b> entry <b>fun</b> <a href="solaris.md#0x1_solaris_add_coins">add_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
+<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_add_coins">add_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
 </code></pre>
 
 
@@ -490,8 +554,8 @@ Add forma coins to an existing solaris. External.
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> entry <b>fun</b> <a href="solaris.md#0x1_solaris_add_coins">add_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
-	<b>acquires</b> <a href="solaris.md#0x1_solaris_SeignorageCapability">SeignorageCapability</a>, <a href="solaris.md#0x1_solaris_Solaris">Solaris</a>, <a href="solaris.md#0x1_solaris_SolarisEvents">SolarisEvents</a>
+<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_add_coins">add_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
+	<b>acquires</b> <a href="solaris.md#0x1_solaris_Solaris">Solaris</a>
 {
 	<b>let</b> solaris_address = <a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(owner);
 	<a href="solaris.md#0x1_solaris_assert_exists">assert_exists</a>&lt;CoinType&gt;(solaris_address);
@@ -510,14 +574,88 @@ Add forma coins to an existing solaris. External.
 	// Store the added coins into the <a href="solaris.md#0x1_solaris">solaris</a>.
 	<b>let</b> <a href="solaris.md#0x1_solaris">solaris</a> = <b>borrow_global_mut</b>&lt;<a href="solaris.md#0x1_solaris_Solaris">Solaris</a>&lt;CoinType&gt;&gt;(solaris_address);
 	<a href="coin.md#0x1_coin_merge">coin::merge</a>&lt;CoinType&gt;(&<b>mut</b> <a href="solaris.md#0x1_solaris">solaris</a>.locked_forma, coins);
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_solaris_add_active_coins"></a>
+
+## Function `add_active_coins`
+
+Add coins with immediate seignorage to an existing solaris.
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="solaris.md#0x1_solaris_add_active_coins">add_active_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="solaris.md#0x1_solaris_add_active_coins">add_active_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
+	<b>acquires</b> <a href="solaris.md#0x1_solaris_SeignorageCapability">SeignorageCapability</a>, <a href="solaris.md#0x1_solaris_Solaris">Solaris</a>, <a href="solaris.md#0x1_solaris_SolarisEvents">SolarisEvents</a>
+{
+	<a href="solaris.md#0x1_solaris_add_coins">add_coins</a>&lt;CoinType&gt;(owner, amount);
+
+	<b>let</b> solaris_address = <a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(owner);
 
 	// Mint the base seignorage reward for locking <a href="forma.md#0x1_forma">forma</a> coins.
-	<b>let</b> (lux_mint_amount, nox_mint_amount) = <a href="solaris.md#0x1_solaris_mint_base_seignorage">mint_base_seignorage</a>&lt;CoinType&gt;(<a href="solaris.md#0x1_solaris">solaris</a>, amount);
+	<b>let</b> (lux_mint_amount, nox_mint_amount) =
+	    <a href="solaris.md#0x1_solaris_mint_active_seignorage">mint_active_seignorage</a>&lt;CoinType&gt;(solaris_address, amount);
 
 	<b>let</b> solaris_events = <b>borrow_global_mut</b>&lt;<a href="solaris.md#0x1_solaris_SolarisEvents">SolarisEvents</a>&lt;CoinType&gt;&gt;(solaris_address);
 	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
-	    &<b>mut</b> solaris_events.solaris_add_coins_events,
-	    <a href="solaris.md#0x1_solaris_SolarisAddCoinsEvent">SolarisAddCoinsEvent</a>&lt;CoinType&gt; {
+	    &<b>mut</b> solaris_events.solaris_add_active_coins_events,
+	    <a href="solaris.md#0x1_solaris_SolarisAddActiveCoinsEvent">SolarisAddActiveCoinsEvent</a>&lt;CoinType&gt; {
+		solaris_address,
+		lux_mint_amount,
+		nox_mint_amount,
+		added_amount: amount,
+	    },
+	);
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_solaris_add_pending_coins"></a>
+
+## Function `add_pending_coins`
+
+Add coins with deferred seignorage (until the next epoch) to an existing solaris.
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="solaris.md#0x1_solaris_add_pending_coins">add_pending_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="solaris.md#0x1_solaris_add_pending_coins">add_pending_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
+	<b>acquires</b> <a href="solaris.md#0x1_solaris_SeignorageCapability">SeignorageCapability</a>, <a href="solaris.md#0x1_solaris_Solaris">Solaris</a>, <a href="solaris.md#0x1_solaris_SolarisEvents">SolarisEvents</a>
+{
+	<a href="solaris.md#0x1_solaris_add_coins">add_coins</a>&lt;CoinType&gt;(owner, amount);
+
+	<b>let</b> solaris_address = <a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(owner);
+
+	// Mint the base seignorage reward for locking <a href="forma.md#0x1_forma">forma</a> coins.
+	<b>let</b> (lux_mint_amount, nox_mint_amount) =
+	    <a href="solaris.md#0x1_solaris_mint_pending_seignorage">mint_pending_seignorage</a>&lt;CoinType&gt;(solaris_address, amount);
+
+	<b>let</b> solaris_events = <b>borrow_global_mut</b>&lt;<a href="solaris.md#0x1_solaris_SolarisEvents">SolarisEvents</a>&lt;CoinType&gt;&gt;(solaris_address);
+	<a href="event.md#0x1_event_emit_event">event::emit_event</a>(
+	    &<b>mut</b> solaris_events.solaris_add_pending_coins_events,
+	    <a href="solaris.md#0x1_solaris_SolarisAddPendingCoinsEvent">SolarisAddPendingCoinsEvent</a>&lt;CoinType&gt; {
 		solaris_address,
 		lux_mint_amount,
 		nox_mint_amount,
@@ -705,7 +843,7 @@ Reactivate forma coins pending unlock.
 	<a href="coin.md#0x1_coin_merge">coin::merge</a>&lt;CoinType&gt;(&<b>mut</b> <a href="solaris.md#0x1_solaris">solaris</a>.locked_forma, reactivated_coins);
 
 	// Re-assign seignorage <b>to</b> reactivated coins.
-	<b>let</b> (_, _) = <a href="solaris.md#0x1_solaris_mint_base_seignorage">mint_base_seignorage</a>&lt;CoinType&gt;(<a href="solaris.md#0x1_solaris">solaris</a>, reactivate_amount);
+	<b>let</b> (_, _) = <a href="solaris.md#0x1_solaris_mint_active_seignorage">mint_active_seignorage</a>&lt;CoinType&gt;(solaris_address, reactivate_amount);
 }
 </code></pre>
 
@@ -836,14 +974,14 @@ Gets the active lux value of a solaris.
 
 </details>
 
-<a name="0x1_solaris_mint_base_seignorage"></a>
+<a name="0x1_solaris_mint_active_seignorage"></a>
 
-## Function `mint_base_seignorage`
+## Function `mint_active_seignorage`
 
-Mint the base seignorage reward for locking forma coins.
+Mint active seignorage for adding forma coins to the solaris.
 
 
-<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_mint_base_seignorage">mint_base_seignorage</a>&lt;CoinType&gt;(<a href="solaris.md#0x1_solaris">solaris</a>: &<b>mut</b> <a href="solaris.md#0x1_solaris_Solaris">solaris::Solaris</a>&lt;CoinType&gt;, amount: u64): (u64, u64)
+<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_mint_active_seignorage">mint_active_seignorage</a>&lt;CoinType&gt;(solaris_address: <b>address</b>, amount: u64): (u64, u64)
 </code></pre>
 
 
@@ -852,9 +990,11 @@ Mint the base seignorage reward for locking forma coins.
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_mint_base_seignorage">mint_base_seignorage</a>&lt;CoinType&gt;(<a href="solaris.md#0x1_solaris">solaris</a>: &<b>mut</b> <a href="solaris.md#0x1_solaris_Solaris">Solaris</a>&lt;CoinType&gt;, amount: u64): (u64, u64)
-	<b>acquires</b> <a href="solaris.md#0x1_solaris_SeignorageCapability">SeignorageCapability</a>
+<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_mint_active_seignorage">mint_active_seignorage</a>&lt;CoinType&gt;(solaris_address: <b>address</b>, amount: u64): (u64, u64)
+	<b>acquires</b> <a href="solaris.md#0x1_solaris_Solaris">Solaris</a>, <a href="solaris.md#0x1_solaris_SeignorageCapability">SeignorageCapability</a>
 {
+	<b>let</b> <a href="solaris.md#0x1_solaris">solaris</a> = <b>borrow_global_mut</b>&lt;<a href="solaris.md#0x1_solaris_Solaris">Solaris</a>&lt;CoinType&gt;&gt;(solaris_address);
+
 	// Mint amount * lux_incentive coins.
 	<b>let</b> lux_incentive = <a href="forma.md#0x1_forma_get_lux_incentive">forma::get_lux_incentive</a>&lt;CoinType&gt;();
 	<b>let</b> lux_mint_amount = amount * lux_incentive;
@@ -870,6 +1010,51 @@ Mint the base seignorage reward for locking forma coins.
 	<b>let</b> nox_coins = <a href="coin.md#0x1_coin_mint">coin::mint</a>(amount * nox_incentive, nox_mint_cap);
 	// Store the nox coins in the active nox.
 	<a href="coin.md#0x1_coin_merge">coin::merge</a>(&<b>mut</b> <a href="solaris.md#0x1_solaris">solaris</a>.active_nox, nox_coins);
+
+	(lux_mint_amount, nox_mint_amount)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_solaris_mint_pending_seignorage"></a>
+
+## Function `mint_pending_seignorage`
+
+Mint pending seignorage for adding forma coins to the solaris.
+
+
+<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_mint_pending_seignorage">mint_pending_seignorage</a>&lt;CoinType&gt;(solaris_address: <b>address</b>, amount: u64): (u64, u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="solaris.md#0x1_solaris_mint_pending_seignorage">mint_pending_seignorage</a>&lt;CoinType&gt;(solaris_address: <b>address</b>, amount: u64): (u64, u64)
+	<b>acquires</b> <a href="solaris.md#0x1_solaris_Solaris">Solaris</a>, <a href="solaris.md#0x1_solaris_SeignorageCapability">SeignorageCapability</a>
+{
+	<b>let</b> <a href="solaris.md#0x1_solaris">solaris</a> = <b>borrow_global_mut</b>&lt;<a href="solaris.md#0x1_solaris_Solaris">Solaris</a>&lt;CoinType&gt;&gt;(solaris_address);
+
+	// Mint amount * lux_incentive coins.
+	<b>let</b> lux_incentive = <a href="forma.md#0x1_forma_get_lux_incentive">forma::get_lux_incentive</a>&lt;CoinType&gt;();
+	<b>let</b> lux_mint_amount = amount * lux_incentive;
+	<b>let</b> lux_mint_cap = &<b>borrow_global</b>&lt;<a href="solaris.md#0x1_solaris_SeignorageCapability">SeignorageCapability</a>&gt;(@arx).lux_mint_cap;
+	<b>let</b> lux_coins = <a href="coin.md#0x1_coin_mint">coin::mint</a>(lux_mint_amount, lux_mint_cap);
+	// Store the lux coins in the active lux.
+	<a href="coin.md#0x1_coin_merge">coin::merge</a>(&<b>mut</b> <a href="solaris.md#0x1_solaris">solaris</a>.pending_active_lux, lux_coins);
+
+	// Mint amount * nox_incentive coins.
+	<b>let</b> nox_incentive = <a href="forma.md#0x1_forma_get_nox_incentive">forma::get_nox_incentive</a>&lt;CoinType&gt;();
+	<b>let</b> nox_mint_amount = amount * nox_incentive;
+	<b>let</b> nox_mint_cap = &<b>borrow_global</b>&lt;<a href="solaris.md#0x1_solaris_SeignorageCapability">SeignorageCapability</a>&gt;(@arx).nox_mint_cap;
+	<b>let</b> nox_coins = <a href="coin.md#0x1_coin_mint">coin::mint</a>(amount * nox_incentive, nox_mint_cap);
+	// Store the nox coins in the active nox.
+	<a href="coin.md#0x1_coin_merge">coin::merge</a>(&<b>mut</b> <a href="solaris.md#0x1_solaris">solaris</a>.pending_active_nox, nox_coins);
 
 	(lux_mint_amount, nox_mint_amount)
 }
@@ -897,6 +1082,81 @@ Ensures a solaris exists for the supplied coin type at address.
 
 <pre><code><b>public</b> <b>fun</b> <a href="solaris.md#0x1_solaris_assert_exists">assert_exists</a>&lt;CoinType&gt;(<b>address</b>: <b>address</b>) {
 	<b>assert</b>!(<b>exists</b>&lt;<a href="solaris.md#0x1_solaris_Solaris">Solaris</a>&lt;CoinType&gt;&gt;(<b>address</b>), <a href="../../std/doc/error.md#0x1_error_not_found">error::not_found</a>(<a href="solaris.md#0x1_solaris_ESOLARIS_NOT_FOUND">ESOLARIS_NOT_FOUND</a>));
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_solaris_exists_arxcoin"></a>
+
+## Function `exists_arxcoin`
+
+Returns whether there exists an <code>ArxCoin</code> based solaris at the supplied address.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="solaris.md#0x1_solaris_exists_arxcoin">exists_arxcoin</a>(<b>address</b>: <b>address</b>): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="solaris.md#0x1_solaris_exists_arxcoin">exists_arxcoin</a>(<b>address</b>: <b>address</b>): bool {
+	<b>exists</b>&lt;<a href="solaris.md#0x1_solaris_Solaris">Solaris</a>&lt;ArxCoin&gt;&gt;(<b>address</b>)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_solaris_exists_lp"></a>
+
+## Function `exists_lp`
+
+Returns whether there exists an <code>LP&lt;ArxCoin, XUSDCoin, Stable&gt;</code> at the supplied address.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="solaris.md#0x1_solaris_exists_lp">exists_lp</a>(<b>address</b>: <b>address</b>): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="solaris.md#0x1_solaris_exists_lp">exists_lp</a>(<b>address</b>: <b>address</b>): bool {
+	<b>exists</b>&lt;<a href="solaris.md#0x1_solaris_Solaris">Solaris</a>&lt;LP&lt;ArxCoin, XUSDCoin, Stable&gt;&gt;&gt;(<b>address</b>)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_solaris_exists_cointype"></a>
+
+## Function `exists_cointype`
+
+Returns whether there exists a solaris of the supplied <code>CoinType</code> at the given address.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="solaris.md#0x1_solaris_exists_cointype">exists_cointype</a>&lt;CoinType&gt;(<b>address</b>: <b>address</b>): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="solaris.md#0x1_solaris_exists_cointype">exists_cointype</a>&lt;CoinType&gt;(<b>address</b>: <b>address</b>): bool {
+	<b>exists</b>&lt;<a href="solaris.md#0x1_solaris_Solaris">Solaris</a>&lt;CoinType&gt;&gt;(<b>address</b>)
 }
 </code></pre>
 

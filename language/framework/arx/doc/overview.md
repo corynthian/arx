@@ -15,6 +15,7 @@ This is the reference documentation of the Arx framework.
 -  [`0x1::account`](account.md#0x1_account)
 -  [`0x1::aggregator`](aggregator.md#0x1_aggregator)
 -  [`0x1::aggregator_factory`](aggregator_factory.md#0x1_aggregator_factory)
+-  [`0x1::archon`](archon.md#0x1_archon)
 -  [`0x1::arx_account`](arx_account.md#0x1_arx_account)
 -  [`0x1::arx_coin`](arx_coin.md#0x1_arx_coin)
 -  [`0x1::block`](block.md#0x1_block)

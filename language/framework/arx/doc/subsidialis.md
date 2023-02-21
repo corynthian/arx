@@ -17,10 +17,14 @@
 -  [Function `leave`](#0x1_subsidialis_leave)
 -  [Function `on_new_epoch`](#0x1_subsidialis_on_new_epoch)
 -  [Function `distribute_mints`](#0x1_subsidialis_distribute_mints)
+-  [Function `add_coins`](#0x1_subsidialis_add_coins)
+-  [Function `increase_joining_power`](#0x1_subsidialis_increase_joining_power)
+-  [Function `is_active_dominus`](#0x1_subsidialis_is_active_dominus)
 -  [Function `get_dominus_state`](#0x1_subsidialis_get_dominus_state)
 -  [Function `find_dominus`](#0x1_subsidialis_find_dominus)
 -  [Function `get_total_active_power`](#0x1_subsidialis_get_total_active_power)
 -  [Function `assert_exists`](#0x1_subsidialis_assert_exists)
+-  [Function `assert_solaris_exists`](#0x1_subsidialis_assert_solaris_exists)
 
 
 <pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
@@ -316,6 +320,16 @@ Attempted to deactivate an already inactive dominus.
 
 
 
+<a name="0x1_subsidialis_ESOLARIS_DOES_NOT_EXIST"></a>
+
+Attempted to use a non existent solaris position.
+
+
+<pre><code><b>const</b> <a href="subsidialis.md#0x1_subsidialis_ESOLARIS_DOES_NOT_EXIST">ESOLARIS_DOES_NOT_EXIST</a>: u64 = 4;
+</code></pre>
+
+
+
 <a name="0x1_subsidialis_ESUBSIDIALIS_NOT_FOUND"></a>
 
 The subsidialis was not initialized.
@@ -389,10 +403,13 @@ It is necessary to join the subsidialis in order to receive seignorage rewards.
 	<b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>, <a href="subsidialis.md#0x1_subsidialis_SubsidialisEvents">SubsidialisEvents</a>
 {
 	<b>let</b> solaris_address = <a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(owner);
-	// Ensure a <a href="solaris.md#0x1_solaris">solaris</a> <b>exists</b> at the supplied <b>address</b>.
-	<a href="solaris.md#0x1_solaris_assert_exists">solaris::assert_exists</a>&lt;CoinType&gt;(solaris_address);
 
 	// TODO: Ensure the <a href="solaris.md#0x1_solaris">solaris</a> is not in <a href="senatus.md#0x1_senatus">senatus</a>.
+
+	// If a <a href="solaris.md#0x1_solaris">solaris</a> for the provided `CoinType` does not exist, then create one.
+	<b>if</b> (!<a href="solaris.md#0x1_solaris_exists_cointype">solaris::exists_cointype</a>&lt;CoinType&gt;(solaris_address)) {
+	    <a href="solaris.md#0x1_solaris_initialize_owner">solaris::initialize_owner</a>&lt;CoinType&gt;(owner);
+	};
 
 	// Ensure the <a href="solaris.md#0x1_solaris">solaris</a> is not already an active dominus.
 	<b>assert</b>!(
@@ -590,6 +607,109 @@ Distribute moneta mints to the solaris set.
 
 </details>
 
+<a name="0x1_subsidialis_add_coins"></a>
+
+## Function `add_coins`
+
+Adds coins to a dominuses solaris.
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_add_coins">add_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_add_coins">add_coins</a>&lt;CoinType&gt;(owner: &<a href="../../std/doc/signer.md#0x1_signer">signer</a>, amount: u64)
+	<b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>
+{
+	<b>let</b> dominus_address = <a href="../../std/doc/signer.md#0x1_signer_address_of">signer::address_of</a>(owner);
+
+	// Ensure a <a href="solaris.md#0x1_solaris">solaris</a> <b>exists</b> at the supplied <b>address</b> (created by joining the <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>).
+	<a href="solaris.md#0x1_solaris_assert_exists">solaris::assert_exists</a>&lt;CoinType&gt;(dominus_address);
+
+	// Add coins and add pending_active seignorage <b>if</b> the dominus is currently active in order <b>to</b>
+	// make the seignorage count in the next epoch. If the dominus is not yet active then the
+	// seignorage can be immediately added <b>to</b> active, since they will activate in the next epoch.
+	<b>if</b> (<a href="subsidialis.md#0x1_subsidialis_is_active_dominus">is_active_dominus</a>(dominus_address)) {
+	    <a href="solaris.md#0x1_solaris_add_pending_coins">solaris::add_pending_coins</a>&lt;CoinType&gt;(owner, amount);
+	} <b>else</b> {
+	    <a href="solaris.md#0x1_solaris_add_active_coins">solaris::add_active_coins</a>&lt;CoinType&gt;(owner, amount);
+	};
+
+    // Only track and validate lux power increases for active and pending_active domini.
+    // pending_inactive dominui will be removed from the <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> in the next epoch.
+    // Inactive domini total stake will be tracked when they join the <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.
+    <b>let</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> = <b>borrow_global_mut</b>&lt;<a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>&gt;(@arx);
+    // Search directly rather using get_archon_state <b>to</b> save on unnecessary loops.
+    <b>if</b> (<a href="../../std/doc/option.md#0x1_option_is_some">option::is_some</a>(&<a href="subsidialis.md#0x1_subsidialis_find_dominus">find_dominus</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.active, dominus_address)) ||
+        <a href="../../std/doc/option.md#0x1_option_is_some">option::is_some</a>(&<a href="subsidialis.md#0x1_subsidialis_find_dominus">find_dominus</a>(&<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.pending_active, dominus_address))) {
+        <a href="subsidialis.md#0x1_subsidialis_increase_joining_power">increase_joining_power</a>(amount);
+    };
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_subsidialis_increase_joining_power"></a>
+
+## Function `increase_joining_power`
+
+
+
+<pre><code><b>fun</b> <a href="subsidialis.md#0x1_subsidialis_increase_joining_power">increase_joining_power</a>(amount: u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="subsidialis.md#0x1_subsidialis_increase_joining_power">increase_joining_power</a>(amount: u64) <b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a> {
+	<b>let</b> <a href="subsidialis.md#0x1_subsidialis">subsidialis</a> = <b>borrow_global_mut</b>&lt;<a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>&gt;(@arx);
+	<a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_joining_power = <a href="subsidialis.md#0x1_subsidialis">subsidialis</a>.total_joining_power + (amount <b>as</b> u128);
+	// TODO: Check for minimum / maximum power
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_subsidialis_is_active_dominus"></a>
+
+## Function `is_active_dominus`
+
+Returns true is the specified archon is still participating in the subsidialis.
+This includes domini which have requested to leave but are pending inactive.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_is_active_dominus">is_active_dominus</a>(dominus_address: <b>address</b>): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_is_active_dominus">is_active_dominus</a>(dominus_address: <b>address</b>): bool <b>acquires</b> <a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a> {
+	<a href="subsidialis.md#0x1_subsidialis_assert_solaris_exists">assert_solaris_exists</a>(dominus_address);
+	<b>let</b> dominus_state = <a href="subsidialis.md#0x1_subsidialis_get_dominus_state">get_dominus_state</a>(dominus_address);
+	dominus_state == <a href="subsidialis.md#0x1_subsidialis_DOMINUS_STATUS_ACTIVE">DOMINUS_STATUS_ACTIVE</a> || dominus_state == <a href="subsidialis.md#0x1_subsidialis_DOMINUS_STATUS_PENDING_INACTIVE">DOMINUS_STATUS_PENDING_INACTIVE</a>
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x1_subsidialis_get_dominus_state"></a>
 
 ## Function `get_dominus_state`
@@ -710,6 +830,35 @@ Ensures the subsidialis exists.
 
 <pre><code><b>public</b> <b>fun</b> <a href="subsidialis.md#0x1_subsidialis_assert_exists">assert_exists</a>() {
 	<b>assert</b>!(<b>exists</b>&lt;<a href="subsidialis.md#0x1_subsidialis_Subsidialis">Subsidialis</a>&gt;(@arx), <a href="../../std/doc/error.md#0x1_error_not_found">error::not_found</a>(<a href="subsidialis.md#0x1_subsidialis_ESUBSIDIALIS_NOT_FOUND">ESUBSIDIALIS_NOT_FOUND</a>));
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x1_subsidialis_assert_solaris_exists"></a>
+
+## Function `assert_solaris_exists`
+
+Ensures a solaris exists of either ArxCoin or LP<ArxCoin, XUSDCoin, Stable> at the supplied
+address.
+
+
+<pre><code><b>fun</b> <a href="subsidialis.md#0x1_subsidialis_assert_solaris_exists">assert_solaris_exists</a>(dominus_address: <b>address</b>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="subsidialis.md#0x1_subsidialis_assert_solaris_exists">assert_solaris_exists</a>(dominus_address: <b>address</b>) {
+	<b>assert</b>!(
+	    <a href="solaris.md#0x1_solaris_exists_arxcoin">solaris::exists_arxcoin</a>(dominus_address) || <a href="solaris.md#0x1_solaris_exists_lp">solaris::exists_lp</a>(dominus_address),
+	    <a href="../../std/doc/error.md#0x1_error_invalid_argument">error::invalid_argument</a>(<a href="subsidialis.md#0x1_subsidialis_ESOLARIS_DOES_NOT_EXIST">ESOLARIS_DOES_NOT_EXIST</a>)
+	);
 }
 </code></pre>
 

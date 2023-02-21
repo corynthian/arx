@@ -1028,6 +1028,16 @@ security of the testnet. This will NOT be enabled in Mainnet.
 ## Constants
 
 
+<a name="0x1_validator_EINVALID_PUBLIC_KEY"></a>
+
+Invalid consensus public key
+
+
+<pre><code><b>const</b> <a href="validator.md#0x1_validator_EINVALID_PUBLIC_KEY">EINVALID_PUBLIC_KEY</a>: u64 = 11;
+</code></pre>
+
+
+
 <a name="0x1_validator_MAX_REWARDS_RATE"></a>
 
 Limit the maximum value of <code>rewards_rate</code> in order to avoid any arithmetic overflow.
@@ -1084,16 +1094,6 @@ Cannot update stake lock's lockup to earlier than current lockup.
 
 
 <pre><code><b>const</b> <a href="validator.md#0x1_validator_EINVALID_LOCKUP">EINVALID_LOCKUP</a>: u64 = 18;
-</code></pre>
-
-
-
-<a name="0x1_validator_EINVALID_PUBLIC_KEY"></a>
-
-Invalid consensus public key
-
-
-<pre><code><b>const</b> <a href="validator.md#0x1_validator_EINVALID_PUBLIC_KEY">EINVALID_PUBLIC_KEY</a>: u64 = 11;
 </code></pre>
 
 
