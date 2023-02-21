@@ -91,7 +91,7 @@ module arx::solaris {
     const EEXISTING_SOLARIS: u64 = 2;
 
     /// Initialises a new solaris assigned to the provided owner.
-    fun initialize_owner<CoinType>(owner: &signer) {
+    public(friend) fun initialize_owner<CoinType>(owner: &signer) {
 	// Ensure a forma exists for this solaris.
 	forma::assert_exists<CoinType>();
 	// Ensure a solaris does not already exist for this owner.
@@ -455,6 +455,11 @@ module arx::solaris {
     /// Returns whether there exists an `LP<ArxCoin, XUSDCoin, Stable>` at the supplied address.
     public fun exists_lp(address: address): bool {
 	exists<Solaris<LP<ArxCoin, XUSDCoin, Stable>>>(address)
+    }
+
+    /// Returns whether there exists a solaris of the supplied `CoinType` at the given address.
+    public fun exists_cointype<CoinType>(address: address): bool {
+	exists<Solaris<CoinType>>(address)
     }
 
     /// Set during genesis and stored in the @core_resource account.
