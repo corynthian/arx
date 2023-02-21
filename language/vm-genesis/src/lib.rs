@@ -677,6 +677,63 @@ pub fn test_genesis_change_set_and_validators(
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Archon {
+    pub owner_address: AccountAddress,
+    pub allocation_amount: u64,
+    pub consensus_pubkey: Vec<u8>,
+    pub proof_of_possession: Vec<u8>,
+    pub network_addresses: Vec<u8>,
+    pub full_node_network_addresses: Vec<u8>,
+}
+
+pub struct TestArchon {
+    pub key: Ed25519PrivateKey,
+    pub consensus_key: bls12381::PrivateKey,
+    pub data: Archon,
+}
+
+impl TestArchon {
+    pub fn new_test_set(count: Option<usize>, initial_allocation: Option<u64>) -> Vec<TestArchon> {
+	let mut rng = rand::SeedableRng::from_seed([1u8; 32]);
+	(0..count.unwrap_or(10))
+	    .map(|_| TestArchon::gen(&mut rng, initial_allocation))
+	    .collect()
+    }
+
+    fn gen(rng: &mut StdRng, initial_allocation: Option<u64>) -> TestArchon {
+        let key = Ed25519PrivateKey::generate(rng);
+        let auth_key = AuthenticationKey::ed25519(&key.public_key());
+        let owner_address = auth_key.derived_address();
+        let consensus_key = bls12381::PrivateKey::generate(rng);
+        let consensus_pubkey = consensus_key.public_key().to_bytes().to_vec();
+        let proof_of_possession = bls12381::ProofOfPossession::create(&consensus_key)
+            .to_bytes()
+            .to_vec();
+        let network_address = [0u8; 0].to_vec();
+        let full_node_network_address = [0u8; 0].to_vec();
+
+        let allocation_amount = if let Some(amount) = initial_allocation {
+            amount
+        } else {
+            1
+        };
+        let data = Archon {
+            owner_address,
+            consensus_pubkey,
+            proof_of_possession,
+            network_addresses: network_address,
+            full_node_network_addresses: full_node_network_address,
+            allocation_amount,
+        };
+        Self {
+            key,
+            consensus_key,
+            data,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dominus {
     pub owner_address: AccountAddress,
     pub allocation_amount: u64,
@@ -784,7 +841,7 @@ pub fn generate_test_genesis(
     framework: &ReleaseBundle,
     count: Option<usize>,
 ) -> (ChangeSet, Vec<TestDominus>, Vec<TestValidator>) {
-    // Initialise the domini for the subsidialis.
+    // Initialise the domini of the subsidialis.
     let test_domini = TestDominus::new_test_set(count, Some(100_000_000));
     let domini_: Vec<Dominus> = test_domini.iter().map(|t| t.data.clone()).collect();
     let domini = &domini_;
