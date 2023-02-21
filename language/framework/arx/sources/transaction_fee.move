@@ -256,13 +256,13 @@ module arx::transaction_fee {
         // Create dummy accounts.
         let alice_addr = signer::address_of(&alice);
         let bob_addr = signer::address_of(&bob);
-        let cararx_addr = signer::address_of(&carol);
+        let carol_addr = signer::address_of(&carol);
         arx_account::create_account(alice_addr);
         arx_account::create_account(bob_addr);
-        arx_account::create_account(cararx_addr);
+        arx_account::create_account(carol_addr);
         coin::deposit(alice_addr, coin::mint(10000, &mint_cap));
         coin::deposit(bob_addr, coin::mint(10000, &mint_cap));
-        coin::deposit(cararx_addr, coin::mint(10000, &mint_cap));
+        coin::deposit(carol_addr, coin::mint(10000, &mint_cap));
         assert!(*option::borrow(&coin::supply<ArxCoin>()) == 30000, 0);
 
         // Block 1 starts.
@@ -283,7 +283,7 @@ module arx::transaction_fee {
         // Now Bob must have 1000 less in his account. Alice and Carol have the same amounts.
         assert!(coin::balance<ArxCoin>(alice_addr) == 10000, 0);
         assert!(coin::balance<ArxCoin>(bob_addr) == 9000, 0);
-        assert!(coin::balance<ArxCoin>(cararx_addr) == 10000, 0);
+        assert!(coin::balance<ArxCoin>(carol_addr) == 10000, 0);
 
         // Block 2 starts.
         process_collected_fees();
@@ -293,7 +293,7 @@ module arx::transaction_fee {
         assert!(validator::get_validator_fee(alice_addr) == 900, 0);
         assert!(coin::balance<ArxCoin>(alice_addr) == 10000, 0);
         assert!(coin::balance<ArxCoin>(bob_addr) == 9000, 0);
-        assert!(coin::balance<ArxCoin>(cararx_addr) == 10000, 0);
+        assert!(coin::balance<ArxCoin>(carol_addr) == 10000, 0);
 
         // Also, aggregator coin is drained and total supply is slightly changed (10% of 1000 is burnt).
         let collected_fees = borrow_global<CollectedFeesPerBlock>(@arx);
@@ -307,23 +307,23 @@ module arx::transaction_fee {
 
         assert!(coin::balance<ArxCoin>(alice_addr) == 10000, 0);
         assert!(coin::balance<ArxCoin>(bob_addr) == 0, 0);
-        assert!(coin::balance<ArxCoin>(cararx_addr) == 10000, 0);
+        assert!(coin::balance<ArxCoin>(carol_addr) == 10000, 0);
 
         // Block 3 starts.
         process_collected_fees();
-        register_proposer_for_fee_collection(cararx_addr);
+        register_proposer_for_fee_collection(carol_addr);
 
         // Collected fees should have been assigned to Bob because he was the peoposer.
         assert!(validator::get_validator_fee(alice_addr) == 900, 0);
         assert!(coin::balance<ArxCoin>(alice_addr) == 10000, 0);
         assert!(validator::get_validator_fee(bob_addr) == 8100, 0);
         assert!(coin::balance<ArxCoin>(bob_addr) == 0, 0);
-        assert!(coin::balance<ArxCoin>(cararx_addr) == 10000, 0);
+        assert!(coin::balance<ArxCoin>(carol_addr) == 10000, 0);
 
         // Again, aggregator coin is drained and total supply is changed by 10% of 9000.
         let collected_fees = borrow_global<CollectedFeesPerBlock>(@arx);
         assert!(coin::is_aggregatable_coin_zero(&collected_fees.amount), 0);
-        assert!(*option::borrow(&collected_fees.proposer) == cararx_addr, 0);
+        assert!(*option::borrow(&collected_fees.proposer) == carol_addr, 0);
         assert!(*option::borrow(&coin::supply<ArxCoin>()) == 29000, 0);
 
         // Simulate transaction fee collection one last time.
@@ -340,7 +340,7 @@ module arx::transaction_fee {
 
         // Carol must have some fees assigned now.
         let collected_fees = borrow_global<CollectedFeesPerBlock>(@arx);
-        assert!(validator::get_validator_fee(cararx_addr) == 1800, 0);
+        assert!(validator::get_validator_fee(carol_addr) == 1800, 0);
         assert!(coin::is_aggregatable_coin_zero(&collected_fees.amount), 0);
         assert!(*option::borrow(&collected_fees.proposer) == alice_addr, 0);
         assert!(*option::borrow(&coin::supply<ArxCoin>()) == 28800, 0);
