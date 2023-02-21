@@ -140,6 +140,15 @@ pub enum EntryFunctionCall {
         cap_update_table: Vec<u8>,
     },
 
+    /// Initializes a network archon with an initial allocation (if non-zero).
+    ArchonInitialize {
+        consensus_pubkey: Vec<u8>,
+        proof_of_possession: Vec<u8>,
+        network_addresses: Vec<u8>,
+        fullnode_addresses: Vec<u8>,
+        initial_allocation: u64,
+    },
+
     /// Batch version of Arx transfer.
     ArxAccountBatchTransfer {
         recipients: Vec<AccountAddress>,
@@ -315,8 +324,8 @@ pub enum EntryFunctionCall {
         code: Vec<Vec<u8>>,
     },
 
-    /// Add forma coins to an existing solaris. External.
-    SolarisAddCoins {
+    /// Adds coins to an archons solaris.
+    SenatusAddCoins {
         coin_type: TypeTag,
         amount: u64,
     },
@@ -341,6 +350,12 @@ pub enum EntryFunctionCall {
 
     /// Withdraw unlocked coins from an existing solaris. External.
     SolarisWithdrawCoins {
+        coin_type: TypeTag,
+        amount: u64,
+    },
+
+    /// Adds coins to a dominuses solaris.
+    SubsidialisAddCoins {
         coin_type: TypeTag,
         amount: u64,
     },
@@ -522,6 +537,19 @@ impl EntryFunctionCall {
                 new_public_key_bytes,
                 cap_update_table,
             ),
+            ArchonInitialize {
+                consensus_pubkey,
+                proof_of_possession,
+                network_addresses,
+                fullnode_addresses,
+                initial_allocation,
+            } => archon_initialize(
+                consensus_pubkey,
+                proof_of_possession,
+                network_addresses,
+                fullnode_addresses,
+                initial_allocation,
+            ),
             ArxAccountBatchTransfer {
                 recipients,
                 amounts,
@@ -615,7 +643,7 @@ impl EntryFunctionCall {
                 metadata_serialized,
                 code,
             ),
-            SolarisAddCoins { coin_type, amount } => solaris_add_coins(coin_type, amount),
+            SenatusAddCoins { coin_type, amount } => senatus_add_coins(coin_type, amount),
             SolarisInitializeAllocation {
                 coin_type,
                 initial_allocation,
@@ -625,6 +653,7 @@ impl EntryFunctionCall {
             },
             SolarisRemoveCoins { coin_type, amount } => solaris_remove_coins(coin_type, amount),
             SolarisWithdrawCoins { coin_type, amount } => solaris_withdraw_coins(coin_type, amount),
+            SubsidialisAddCoins { coin_type, amount } => subsidialis_add_coins(coin_type, amount),
             SubsidialisJoin { coin_type } => subsidialis_join(coin_type),
             SubsidialisLeave { coin_type } => subsidialis_leave(coin_type),
             ValidatorIncreaseLockup {} => validator_increase_lockup(),
@@ -926,6 +955,34 @@ pub fn account_rotate_authentication_key_with_rotation_capability(
             bcs::to_bytes(&new_scheme).unwrap(),
             bcs::to_bytes(&new_public_key_bytes).unwrap(),
             bcs::to_bytes(&cap_update_table).unwrap(),
+        ],
+    ))
+}
+
+/// Initializes a network archon with an initial allocation (if non-zero).
+pub fn archon_initialize(
+    consensus_pubkey: Vec<u8>,
+    proof_of_possession: Vec<u8>,
+    network_addresses: Vec<u8>,
+    fullnode_addresses: Vec<u8>,
+    initial_allocation: u64,
+) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("archon").to_owned(),
+        ),
+        ident_str!("initialize").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&consensus_pubkey).unwrap(),
+            bcs::to_bytes(&proof_of_possession).unwrap(),
+            bcs::to_bytes(&network_addresses).unwrap(),
+            bcs::to_bytes(&fullnode_addresses).unwrap(),
+            bcs::to_bytes(&initial_allocation).unwrap(),
         ],
     ))
 }
@@ -1457,15 +1514,15 @@ pub fn resource_account_create_resource_account_and_publish_package(
     ))
 }
 
-/// Add forma coins to an existing solaris. External.
-pub fn solaris_add_coins(coin_type: TypeTag, amount: u64) -> TransactionPayload {
+/// Adds coins to an archons solaris.
+pub fn senatus_add_coins(coin_type: TypeTag, amount: u64) -> TransactionPayload {
     TransactionPayload::EntryFunction(EntryFunction::new(
         ModuleId::new(
             AccountAddress::new([
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 1,
             ]),
-            ident_str!("solaris").to_owned(),
+            ident_str!("senatus").to_owned(),
         ),
         ident_str!("add_coins").to_owned(),
         vec![coin_type],
@@ -1535,6 +1592,22 @@ pub fn solaris_withdraw_coins(coin_type: TypeTag, amount: u64) -> TransactionPay
             ident_str!("solaris").to_owned(),
         ),
         ident_str!("withdraw_coins").to_owned(),
+        vec![coin_type],
+        vec![bcs::to_bytes(&amount).unwrap()],
+    ))
+}
+
+/// Adds coins to a dominuses solaris.
+pub fn subsidialis_add_coins(coin_type: TypeTag, amount: u64) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("subsidialis").to_owned(),
+        ),
+        ident_str!("add_coins").to_owned(),
         vec![coin_type],
         vec![bcs::to_bytes(&amount).unwrap()],
     ))
@@ -2004,6 +2077,20 @@ mod decoder {
         }
     }
 
+    pub fn archon_initialize(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::ArchonInitialize {
+                consensus_pubkey: bcs::from_bytes(script.args().get(0)?).ok()?,
+                proof_of_possession: bcs::from_bytes(script.args().get(1)?).ok()?,
+                network_addresses: bcs::from_bytes(script.args().get(2)?).ok()?,
+                fullnode_addresses: bcs::from_bytes(script.args().get(3)?).ok()?,
+                initial_allocation: bcs::from_bytes(script.args().get(4)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn arx_account_batch_transfer(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::ArxAccountBatchTransfer {
@@ -2315,9 +2402,9 @@ mod decoder {
         }
     }
 
-    pub fn solaris_add_coins(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+    pub fn senatus_add_coins(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
-            Some(EntryFunctionCall::SolarisAddCoins {
+            Some(EntryFunctionCall::SenatusAddCoins {
                 coin_type: script.ty_args().get(0)?.clone(),
                 amount: bcs::from_bytes(script.args().get(0)?).ok()?,
             })
@@ -2364,6 +2451,17 @@ mod decoder {
     pub fn solaris_withdraw_coins(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::SolarisWithdrawCoins {
+                coin_type: script.ty_args().get(0)?.clone(),
+                amount: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn subsidialis_add_coins(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SubsidialisAddCoins {
                 coin_type: script.ty_args().get(0)?.clone(),
                 amount: bcs::from_bytes(script.args().get(0)?).ok()?,
             })
@@ -2628,6 +2726,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             Box::new(decoder::account_rotate_authentication_key_with_rotation_capability),
         );
         map.insert(
+            "archon_initialize".to_string(),
+            Box::new(decoder::archon_initialize),
+        );
+        map.insert(
             "arx_account_batch_transfer".to_string(),
             Box::new(decoder::arx_account_batch_transfer),
         );
@@ -2732,8 +2834,8 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             Box::new(decoder::resource_account_create_resource_account_and_publish_package),
         );
         map.insert(
-            "solaris_add_coins".to_string(),
-            Box::new(decoder::solaris_add_coins),
+            "senatus_add_coins".to_string(),
+            Box::new(decoder::senatus_add_coins),
         );
         map.insert(
             "solaris_initialize_allocation".to_string(),
@@ -2750,6 +2852,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "solaris_withdraw_coins".to_string(),
             Box::new(decoder::solaris_withdraw_coins),
+        );
+        map.insert(
+            "subsidialis_add_coins".to_string(),
+            Box::new(decoder::subsidialis_add_coins),
         );
         map.insert(
             "subsidialis_join".to_string(),
