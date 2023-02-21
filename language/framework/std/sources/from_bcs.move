@@ -50,7 +50,6 @@ module std::from_bcs {
     /// owned.
     public(friend) native fun from_bytes<T>(bytes: vector<u8>): T;
     friend std::any;
-    friend std::any_ref;
     friend std::copyable_any;
 
 
