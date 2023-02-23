@@ -15,6 +15,28 @@ var app = Elm.Main.init({
     node: document.getElementById('elmMain')
 });
 
+// Request to join the subsidialis with a solaris of `ArxCoin` type.
+async function subsidialisJoin(arxAccount) {
+    const client = new Arx.ArxClient(NODE_URL);
+    const coinType = new Arx.TxnBuilderTypes.TypeTagStruct(
+	Arx.TxnBuilderTypes.StructTag.fromString("0x1::arx_coin::ArxCoin")
+    );
+    const entryFunctionPayload = new Arx.TxnBuilderTypes.TransactionPayloadEntryFunction(
+	Arx.TxnBuilderTypes.EntryFunction.natural(
+	    "0x1::subsidialis",
+	    "join",
+	    [coinType],
+	    [],
+	),
+    );
+    const rawTxn = await client.generateRawTransaction(arxAccount.address(), entryFunctionPayload);
+    const bcsTxn = Arx.ArxClient.generateBCSTransaction(arxAccount, rawTxn);
+    const transactionResult = await client.submitSignedBCSTransaction(bcsTxn);
+    await client.waitForTransaction(transactionResult.hash);
+    return transactionResult.hash;
+}
+
+// Add `ArxCoin`s to an existing solaris within the subsidialis.
 async function subsidialisAddCoins(arxAccount, amount) {
     const client = new Arx.ArxClient(NODE_URL);
     const coinType = new Arx.TxnBuilderTypes.TypeTagStruct(
@@ -24,7 +46,7 @@ async function subsidialisAddCoins(arxAccount, amount) {
 	Arx.TxnBuilderTypes.EntryFunction.natural(
 	    "0x1::subsidialis",
 	    "add_coins",
-	    [],
+	    [coinType],
 	    [Arx.BCS.bcsSerializeUint64(amount)],
 	),
     );
@@ -56,6 +78,11 @@ app.ports.sendCommand.subscribe(async function(cmd) {
 	console.log('[port:sendCommand] subsidialis.addCoins(' + cmd.amount + ')');
 	const account = Arx.ArxAccount.fromArxAccountObject(cmd.account);
 	const hash = await subsidialisAddCoins(account, cmd.amount);
+	app.ports.receiveResult.send({"resultType": "txnHash", "hash": hash});
+    } else if (cmd.commandType === "subsidialisJoin") {
+	console.log('[port:sendCommand] subsidialis.join()');
+	const account = Arx.ArxAccount.fromArxAccountObject(cmd.account);
+	const hash = await subsidialisJoin(account);
 	app.ports.receiveResult.send({"resultType": "txnHash", "hash": hash});
     } else {
 	console.log('[port:sendCommand] Invalid command type');
