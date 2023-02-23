@@ -132,11 +132,20 @@ module arx::genesis {
 
     // Genesis step 2: Initialize Arx coin.
     fun initialize_arx_coin(arx: &signer) {
-        let (burn_cap, mint_cap) = arx_coin::initialize(arx);
+        let (arx_burn_cap, arx_mint_cap) = arx_coin::initialize(arx);
+	let (nox_burn_cap, nox_mint_cap) = nox_coin::initialize(arx);
+	let (lux_burn_cap, lux_mint_cap) = lux_coin::initialize(arx);
         // Give the `validator` module MintCapability<ArxCoin> so it can mint rewards.
-        validator::store_arx_coin_mint_cap(arx, mint_cap);
+        validator::store_arx_coin_mint_cap(arx, arx_mint_cap);
         // Give transaction_fee module BurnCapability<ArxCoin> so it can burn gas.
-        transaction_fee::store_arx_coin_burn_cap(arx, burn_cap);
+        transaction_fee::store_arx_coin_burn_cap(arx, arx_burn_cap);
+
+	// Give `moneta` module MintCapability<ArxCoin> so it can mint `ARX`.
+	moneta::store_arx_coin_mint_cap(arx, arx_mint_cap, arx_burn_cap);
+	// Give `moneta` module MintCapability<XUSD> so it can mint `XUSD` (testing only).
+	moneta::store_xusd_coin_mint_cap(arx, xusd_mint_cap, xusd_burn_cap);
+	// Give `solaris` module seignorage capabilities.
+	solaris::store_seignorage_caps(arx, lux_mint_cap, lux_burn_cap, nox_mint_cap, nox_burn_cap);
     }
 
     /// Only called for testnets and e2e tests.
@@ -149,15 +158,16 @@ module arx::genesis {
 	let (nox_burn_cap, nox_mint_cap) = nox_coin::initialize(arx);
 	let (lux_burn_cap, lux_mint_cap) = lux_coin::initialize(arx);
 	let (xusd_burn_cap, xusd_mint_cap) = xusd_coin::initialize(arx);
+
 	// TODO: Remove validator mint capability.
         // Give `validator` module MintCapability<ArxCoin> so it can mint rewards.
         validator::store_arx_coin_mint_cap(arx, arx_mint_cap);
+        // Give `transaction_fee` module BurnCapability<ArxCoin> so it can burn gas.
+        transaction_fee::store_arx_coin_burn_cap(arx, arx_burn_cap);
 	// Give `moneta` module MintCapability<ArxCoin> so it can mint `ARX`.
 	moneta::store_arx_coin_mint_cap(arx, arx_mint_cap, arx_burn_cap);
 	// Give `moneta` module MintCapability<XUSD> so it can mint `XUSD` (testing only).
 	moneta::store_xusd_coin_mint_cap(arx, xusd_mint_cap, xusd_burn_cap);
-        // Give `transaction_fee` module BurnCapability<ArxCoin> so it can burn gas.
-        transaction_fee::store_arx_coin_burn_cap(arx, arx_burn_cap);
 	// Give `solaris` module seignorage capabilities.
 	solaris::store_seignorage_caps(arx, lux_mint_cap, lux_burn_cap, nox_mint_cap, nox_burn_cap);
 
