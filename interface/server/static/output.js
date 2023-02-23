@@ -5339,11 +5339,11 @@ var $author$project$Main$CredentialMsg = function (a) {
 };
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $author$project$Account$default = function (arxAccountObject) {
-	return {address: '', arxAccountObject: arxAccountObject, arxBalance: 0, luxBalance: 0, noxBalance: 0};
+	return {address: '', arxAccountObject: arxAccountObject, arxBalance: 0, arxLockedBalance: 0, arxPendingUnlockedBalance: 0, arxUnlockedBalance: 0, luxActiveBalance: 0, luxPendingBalance: 0, noxActiveBalance: 0, noxPendingBalance: 0};
 };
 var $author$project$Subsidialis$AddCoins$default = {amount: '0', arxAccountObject: $elm$core$Maybe$Nothing};
 var $author$project$Subsidialis$defaultData = {active: _List_Nil, pendingActive: _List_Nil, pendingInactive: _List_Nil, totalActivePower: '', totalJoiningPower: ''};
-var $author$project$Subsidialis$default = {addCoins: $author$project$Subsidialis$AddCoins$default, data: $author$project$Subsidialis$defaultData};
+var $author$project$Subsidialis$default = {addCoins: $author$project$Subsidialis$AddCoins$default, arxAccountObject: $elm$core$Maybe$Nothing, data: $author$project$Subsidialis$defaultData};
 var $author$project$Main$default = F3(
 	function (url, key, credential) {
 		return {
@@ -5419,6 +5419,30 @@ var $author$project$Js$encodeCommand = function (cmd) {
 						_Utils_Tuple2(
 						'amount',
 						$elm$json$Json$Encode$int(amount))
+					]));
+		case 'GetSolaris':
+			var arxAccount = cmd.a;
+			return $elm$json$Json$Encode$object(
+				_List_fromArray(
+					[
+						_Utils_Tuple2(
+						'commandType',
+						$elm$json$Json$Encode$string('getSolaris')),
+						_Utils_Tuple2(
+						'account',
+						$author$project$Js$Data$encodeArxAccountObject(arxAccount))
+					]));
+		case 'SubsidialisJoin':
+			var arxAccount = cmd.a;
+			return $elm$json$Json$Encode$object(
+				_List_fromArray(
+					[
+						_Utils_Tuple2(
+						'commandType',
+						$elm$json$Json$Encode$string('subsidialisJoin')),
+						_Utils_Tuple2(
+						'account',
+						$author$project$Js$Data$encodeArxAccountObject(arxAccount))
 					]));
 		default:
 			var arxAccount = cmd.a;
@@ -6916,9 +6940,22 @@ var $author$project$Account$update = F2(
 						$author$project$Api$getAccountArxCoinResource,
 						$author$project$Account$matchResult($author$project$Account$ArxCoin),
 						model.address));
+			case 'ArxSolaris':
+				var solaris = msg.a;
+				var _v1 = A2($elm$core$Debug$log, 'account-solaris', solaris);
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							luxActiveBalance: $author$project$Account$parseBalanceString(solaris.data.activeLux.value),
+							luxPendingBalance: $author$project$Account$parseBalanceString(solaris.data.pendingActiveLux.value),
+							noxActiveBalance: $author$project$Account$parseBalanceString(solaris.data.activeNox.value),
+							noxPendingBalance: $author$project$Account$parseBalanceString(solaris.data.pendingActiveNox.value)
+						}),
+					$elm$core$Platform$Cmd$none);
 			case 'ArxCoin':
 				var coinStore = msg.a;
-				var _v1 = A2($elm$core$Debug$log, 'account-arx', coinStore.data.coin.value);
+				var _v2 = A2($elm$core$Debug$log, 'account-arx', coinStore.data.coin.value);
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -6926,32 +6963,15 @@ var $author$project$Account$update = F2(
 							arxBalance: $author$project$Account$parseBalanceString(coinStore.data.coin.value)
 						}),
 					$elm$core$Platform$Cmd$none);
-			case 'LuxCoin':
-				var coinStore = msg.a;
-				var _v2 = A2($elm$core$Debug$log, 'account-lux', coinStore.data.coin.value);
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							luxBalance: $author$project$Account$parseBalanceString(coinStore.data.coin.value)
-						}),
-					$elm$core$Platform$Cmd$none);
-			case 'NoxCoin':
-				var coinStore = msg.a;
-				var _v3 = A2($elm$core$Debug$log, 'account-nox', coinStore.data.coin.value);
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							noxBalance: $author$project$Account$parseBalanceString(coinStore.data.coin.value)
-						}),
-					$elm$core$Platform$Cmd$none);
 			default:
 				var err = msg.a;
-				var _v4 = A2($elm$core$Debug$log, 'account-error', err);
+				var _v3 = A2($elm$core$Debug$log, 'account-error', err);
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
+var $author$project$Js$SubsidialisJoin = function (a) {
+	return {$: 'SubsidialisJoin', a: a};
+};
 var $author$project$Js$SubsidialisAddCoins = F2(
 	function (a, b) {
 		return {$: 'SubsidialisAddCoins', a: a, b: b};
@@ -6994,11 +7014,12 @@ var $author$project$Subsidialis$AddCoins$update = F2(
 						$author$project$Js$sendCommand(
 							$author$project$Js$encodeCommand(cmd)));
 				} else {
+					var _v2 = A2($elm$core$Debug$log, 'add_coins', 'arxAccountObject was undefined');
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
 			default:
 				var err = msg.a;
-				var _v2 = A2($elm$core$Debug$log, 'add-coins-error', err);
+				var _v3 = A2($elm$core$Debug$log, 'add-coins-error', err);
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
@@ -7016,11 +7037,24 @@ var $author$project$Subsidialis$update = F2(
 						model,
 						{data: subsidialis.data}),
 					$elm$core$Platform$Cmd$none);
+			case 'JoinSubsidialis':
+				var _v1 = model.arxAccountObject;
+				if (_v1.$ === 'Just') {
+					var arxAccountObject = _v1.a;
+					var cmd = $author$project$Js$SubsidialisJoin(arxAccountObject);
+					return _Utils_Tuple2(
+						model,
+						$author$project$Js$sendCommand(
+							$author$project$Js$encodeCommand(cmd)));
+				} else {
+					var _v2 = A2($elm$core$Debug$log, 'subsidialis', 'arxAccountObject was undefined');
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 			case 'AddCoinsMsg':
 				var subMsg = msg.a;
-				var _v1 = A2($author$project$Subsidialis$AddCoins$update, subMsg, model.addCoins);
-				var subModel = _v1.a;
-				var cmdMsg = _v1.b;
+				var _v3 = A2($author$project$Subsidialis$AddCoins$update, subMsg, model.addCoins);
+				var subModel = _v3.a;
+				var cmdMsg = _v3.b;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -7074,13 +7108,68 @@ var $author$project$Credential$update = F2(
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
-var $author$project$Subsidialis$AddCoins$updateArxAccount = F2(
-	function (arxAccountObject, model) {
-		return _Utils_Tuple2(
-			_Utils_update(
-				model,
-				{arxAccountObject: arxAccountObject}),
-			$elm$core$Platform$Cmd$none);
+var $author$project$Account$ArxSolaris = function (a) {
+	return {$: 'ArxSolaris', a: a};
+};
+var $author$project$Js$GetSolaris = function (a) {
+	return {$: 'GetSolaris', a: a};
+};
+var $author$project$Generated$Api$Data$Solaris = F9(
+	function (ownerAddress, activeLux, pendingActiveLux, activeNox, pendingActiveNox, lockedCoins, pendingUnlockedCoins, unlockedCoins, timeRemaining) {
+		return {activeLux: activeLux, activeNox: activeNox, lockedCoins: lockedCoins, ownerAddress: ownerAddress, pendingActiveLux: pendingActiveLux, pendingActiveNox: pendingActiveNox, pendingUnlockedCoins: pendingUnlockedCoins, timeRemaining: timeRemaining, unlockedCoins: unlockedCoins};
+	});
+var $author$project$Generated$Api$Data$Coin = function (value) {
+	return {value: value};
+};
+var $author$project$Generated$Api$Data$coinDecoder = A3(
+	$author$project$Generated$Api$Data$decode,
+	'value',
+	$elm$json$Json$Decode$string,
+	$elm$json$Json$Decode$succeed($author$project$Generated$Api$Data$Coin));
+var $author$project$Generated$Api$Data$solarisDecoder = A3(
+	$author$project$Generated$Api$Data$decode,
+	'time_remaining',
+	$elm$json$Json$Decode$string,
+	A3(
+		$author$project$Generated$Api$Data$decode,
+		'unlocked_forma',
+		$author$project$Generated$Api$Data$coinDecoder,
+		A3(
+			$author$project$Generated$Api$Data$decode,
+			'pending_unlocked_forma',
+			$author$project$Generated$Api$Data$coinDecoder,
+			A3(
+				$author$project$Generated$Api$Data$decode,
+				'locked_forma',
+				$author$project$Generated$Api$Data$coinDecoder,
+				A3(
+					$author$project$Generated$Api$Data$decode,
+					'pending_active_nox',
+					$author$project$Generated$Api$Data$coinDecoder,
+					A3(
+						$author$project$Generated$Api$Data$decode,
+						'active_nox',
+						$author$project$Generated$Api$Data$coinDecoder,
+						A3(
+							$author$project$Generated$Api$Data$decode,
+							'pending_active_lux',
+							$author$project$Generated$Api$Data$coinDecoder,
+							A3(
+								$author$project$Generated$Api$Data$decode,
+								'active_lux',
+								$author$project$Generated$Api$Data$coinDecoder,
+								A3(
+									$author$project$Generated$Api$Data$decode,
+									'owner_address',
+									$elm$json$Json$Decode$string,
+									$elm$json$Json$Decode$succeed($author$project$Generated$Api$Data$Solaris))))))))));
+var $author$project$Api$getArxSolaris = F2(
+	function (matchResult, address) {
+		return A3(
+			$author$project$Api$send,
+			$author$project$Api$localNetworkUrl,
+			matchResult,
+			A4($author$project$Generated$Api$Request$Accounts$getAccountResource, address, '0x1::solaris::Solaris<0x1::arx_coin::ArxCoin>', $elm$core$Maybe$Nothing, $author$project$Generated$Api$Data$solarisDecoder));
 	});
 var $author$project$Account$updateCredential = F2(
 	function (credential, model) {
@@ -7090,6 +7179,7 @@ var $author$project$Account$updateCredential = F2(
 		} else {
 			var arxAccountObject = _v0.a;
 			var address = arxAccountObject.address;
+			var getSolaris = $author$project$Js$GetSolaris(arxAccountObject);
 			return _Utils_Tuple2(
 				_Utils_update(
 					model,
@@ -7103,8 +7193,42 @@ var $author$project$Account$updateCredential = F2(
 							A2(
 							$author$project$Api$getAccountArxCoinResource,
 							$author$project$Account$matchResult($author$project$Account$ArxCoin),
+							address),
+							A2(
+							$author$project$Api$getArxSolaris,
+							$author$project$Account$matchResult($author$project$Account$ArxSolaris),
 							address)
 						])));
+		}
+	});
+var $author$project$Subsidialis$AddCoins$updateArxAccountObject = F2(
+	function (arxAccountObject, model) {
+		return _Utils_Tuple2(
+			_Utils_update(
+				model,
+				{
+					arxAccountObject: $elm$core$Maybe$Just(arxAccountObject)
+				}),
+			$elm$core$Platform$Cmd$none);
+	});
+var $author$project$Subsidialis$updateCredential = F2(
+	function (credential, model) {
+		var _v0 = credential.arxAccountObject;
+		if (_v0.$ === 'Nothing') {
+			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+		} else {
+			var arxAccountObject = _v0.a;
+			var _v1 = A2($author$project$Subsidialis$AddCoins$updateArxAccountObject, arxAccountObject, model.addCoins);
+			var addCoins = _v1.a;
+			var addCoinsMsg = _v1.b;
+			return _Utils_Tuple2(
+				_Utils_update(
+					model,
+					{
+						addCoins: addCoins,
+						arxAccountObject: $elm$core$Maybe$Just(arxAccountObject)
+					}),
+				A2($elm$core$Platform$Cmd$map, $author$project$Subsidialis$AddCoinsMsg, addCoinsMsg));
 		}
 	});
 var $author$project$Main$updateCredentials = F2(
@@ -7115,29 +7239,19 @@ var $author$project$Main$updateCredentials = F2(
 		var _v1 = A2($author$project$Account$updateCredential, credential, model.account);
 		var account = _v1.a;
 		var accountMsg = _v1.b;
-		var _v2 = A2($author$project$Subsidialis$AddCoins$updateArxAccount, credential.arxAccountObject, model.subsidialis.addCoins);
-		var addCoins = _v2.a;
-		var addCoinsMsg = _v2.b;
-		var subsidialis = model.subsidialis;
+		var _v2 = A2($author$project$Subsidialis$updateCredential, credential, model.subsidialis);
+		var subsidialis = _v2.a;
+		var subsidialisMsg = _v2.b;
 		return _Utils_Tuple2(
 			_Utils_update(
 				model,
-				{
-					account: account,
-					credential: credential,
-					subsidialis: _Utils_update(
-						subsidialis,
-						{addCoins: addCoins})
-				}),
+				{account: account, credential: credential, subsidialis: subsidialis}),
 			$elm$core$Platform$Cmd$batch(
 				_List_fromArray(
 					[
 						A2($elm$core$Platform$Cmd$map, $author$project$Main$CredentialMsg, cmdMsg),
 						A2($elm$core$Platform$Cmd$map, $author$project$Main$AccountMsg, accountMsg),
-						A2(
-						$elm$core$Platform$Cmd$map,
-						$author$project$Main$SubsidialisMsg,
-						A2($elm$core$Platform$Cmd$map, $author$project$Subsidialis$AddCoinsMsg, addCoinsMsg))
+						A2($elm$core$Platform$Cmd$map, $author$project$Main$SubsidialisMsg, subsidialisMsg)
 					])));
 	});
 var $author$project$Main$update = F2(
@@ -9897,6 +10011,16 @@ var $rtfeldman$elm_css$Html$Styled$Events$onClick = function (msg) {
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
 };
+var $author$project$Account$printArxCoins = function (balance) {
+	return $elm$core$String$fromFloat(balance / 100000000.0);
+};
+var $author$project$Account$printSeignorage = function (model) {
+	var activeLux = $elm$core$String$fromFloat(model.luxActiveBalance / 100000000.0);
+	var pendingLux = $elm$core$String$fromFloat(model.luxPendingBalance / 100000000.0);
+	var activeNox = $elm$core$String$fromFloat(model.noxActiveBalance / 100000000.0);
+	var pendingNox = $elm$core$String$fromFloat(model.noxPendingBalance / 100000000.0);
+	return activeLux + (' LUX (active) / ' + (pendingLux + (' LUX (pending) / ' + (activeNox + (' NOX (active) / ' + (pendingNox + ' NOX (pending)'))))));
+};
 var $author$project$Layout$Centered$containerStyle = _List_fromArray(
 	[
 		$rtfeldman$elm_css$Css$displayFlex,
@@ -10018,7 +10142,7 @@ var $author$project$Account$view = function (model) {
 								_List_fromArray(
 									[
 										$rtfeldman$elm_css$Html$Styled$text(
-										$elm$core$String$fromInt(model.arxBalance) + ' ARX / 0 XUSD / 0 ARX:XUSD')
+										$author$project$Account$printArxCoins(model.arxBalance) + ' ARX / 0 XUSD / 0 ARX:XUSD')
 									]))
 							])),
 						A2(
@@ -10047,7 +10171,8 @@ var $author$project$Account$view = function (model) {
 									]),
 								_List_fromArray(
 									[
-										$rtfeldman$elm_css$Html$Styled$text('0 LUX / 0 NOX')
+										$rtfeldman$elm_css$Html$Styled$text(
+										$author$project$Account$printSeignorage(model))
 									]))
 							])),
 						A2(
@@ -10056,7 +10181,7 @@ var $author$project$Account$view = function (model) {
 							[
 								$rtfeldman$elm_css$Html$Styled$Events$onClick(
 								$author$project$Account$SendJsCommand(
-									A2($author$project$Js$Faucet, model.address, 1000000)))
+									A2($author$project$Js$Faucet, model.address, 10000000)))
 							]),
 						_List_fromArray(
 							[
@@ -10065,6 +10190,7 @@ var $author$project$Account$view = function (model) {
 					]))
 			]));
 };
+var $author$project$Subsidialis$JoinSubsidialis = {$: 'JoinSubsidialis'};
 var $rtfeldman$elm_css$Html$Styled$a = $rtfeldman$elm_css$Html$Styled$node('a');
 var $author$project$Subsidialis$activeContainerCss = _List_fromArray(
 	[
@@ -10330,6 +10456,16 @@ var $author$project$Subsidialis$view = function (model) {
 					]),
 				_List_fromArray(
 					[
+						A2(
+						$author$project$Styles$Elements$btn,
+						_List_fromArray(
+							[
+								$rtfeldman$elm_css$Html$Styled$Events$onClick($author$project$Subsidialis$JoinSubsidialis)
+							]),
+						_List_fromArray(
+							[
+								$rtfeldman$elm_css$Html$Styled$text('BECOME DOMINUS')
+							])),
 						A2(
 						$author$project$Styles$Elements$listElement,
 						_List_fromArray(
@@ -10716,7 +10852,10 @@ var $author$project$Main$loadView = function (model) {
 				$author$project$Main$AccountMsg,
 				$author$project$Account$view(model.account));
 		case '/subsidialis':
-			return $author$project$Subsidialis$view(model.subsidialis.data);
+			return A2(
+				$rtfeldman$elm_css$Html$Styled$map,
+				$author$project$Main$SubsidialisMsg,
+				$author$project$Subsidialis$view(model.subsidialis.data));
 		case '/subsidialis/add_coins':
 			return A2(
 				$rtfeldman$elm_css$Html$Styled$map,
