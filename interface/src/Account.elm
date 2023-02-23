@@ -22,8 +22,13 @@ import Styles.Theme as Theme
 type alias Model =
     { arxAccountObject : Maybe Js.Data.ArxAccountObject
     , arxBalance : Int
-    , luxBalance : Int
-    , noxBalance : Int
+    , luxActiveBalance : Int
+    , luxPendingBalance : Int
+    , noxActiveBalance : Int
+    , noxPendingBalance : Int
+    , arxLockedBalance : Int
+    , arxPendingUnlockedBalance : Int
+    , arxUnlockedBalance : Int
     , address : String
     }
 
@@ -31,8 +36,13 @@ type alias Model =
 default arxAccountObject =
     { arxAccountObject = arxAccountObject
     , arxBalance = 0
-    , luxBalance = 0
-    , noxBalance = 0
+    , luxActiveBalance = 0
+    , luxPendingBalance = 0
+    , noxActiveBalance = 0
+    , noxPendingBalance = 0
+    , arxLockedBalance = 0
+    , arxPendingUnlockedBalance = 0
+    , arxUnlockedBalance = 0
     , address = ""
     }
 
@@ -47,9 +57,8 @@ init arxAccountObject =
 type Msg
     = SendJsCommand Js.Command
     | Hashes (List String)
+    | ArxSolaris (Data.MoveResource Data.Solaris)
     | ArxCoin (Data.MoveResource Data.CoinStore)
-    | LuxCoin (Data.MoveResource Data.CoinStore)
-    | NoxCoin (Data.MoveResource Data.CoinStore)
     | Error String
 
 
@@ -67,11 +76,12 @@ updateCredential credential model =
             ( model, Cmd.none )
         Just arxAccountObject ->
             let address = arxAccountObject.address in
+            let getSolaris = Js.GetSolaris arxAccountObject in
             ( { model | arxAccountObject = Just arxAccountObject, address = address }
             , Cmd.batch [
-                 Api.getAccountArxCoinResource (matchResult ArxCoin) address
---               , Api.getAccountLuxCoinResource (matchResult LuxCoin) address
---               , Api.getAccountNoxCoinResource (matchResult NoxCoin) address
+                Api.getAccountArxCoinResource (matchResult ArxCoin) address
+              , Api.getArxSolaris (matchResult ArxSolaris) address
+                     -- , Js.sendCommand (Js.encodeCommand getSolaris)
               ]
             )
 
@@ -82,21 +92,35 @@ update msg model =
             ( model, Js.sendCommand (Js.encodeCommand cmd) )
         Hashes _ ->
             ( model, Api.getAccountArxCoinResource (matchResult ArxCoin) model.address )
+        ArxSolaris solaris ->
+            let _ = Debug.log "account-solaris" solaris in
+            ( { model | luxActiveBalance = parseBalanceString solaris.data.activeLux.value
+              , luxPendingBalance = parseBalanceString solaris.data.pendingActiveLux.value
+              , noxActiveBalance = parseBalanceString solaris.data.activeNox.value
+              , noxPendingBalance = parseBalanceString solaris.data.pendingActiveNox.value
+              }
+            , Cmd.none )
         ArxCoin coinStore ->
             let _ = Debug.log "account-arx" coinStore.data.coin.value in
             ( { model | arxBalance = parseBalanceString coinStore.data.coin.value }, Cmd.none )
-        LuxCoin coinStore ->
-            let _ = Debug.log "account-lux" coinStore.data.coin.value in
-            ( { model | luxBalance = parseBalanceString coinStore.data.coin.value }, Cmd.none )
-        NoxCoin coinStore ->
-            let _ = Debug.log "account-nox" coinStore.data.coin.value in
-            ( { model | noxBalance = parseBalanceString coinStore.data.coin.value }, Cmd.none )
         Error err ->
             let _ = Debug.log "account-error" err in
             ( model, Cmd.none )
 
 -- VIEW
 
+
+printArxCoins balance =
+    String.fromFloat ((toFloat balance) / 100000000.0)
+
+
+printSeignorage model =
+    let activeLux = String.fromFloat ((toFloat model.luxActiveBalance) / 100000000.0) in
+    let pendingLux = String.fromFloat ((toFloat model.luxPendingBalance) / 100000000.0) in
+    let activeNox = String.fromFloat ((toFloat model.noxActiveBalance) / 100000000.0) in
+    let pendingNox = String.fromFloat ((toFloat model.noxPendingBalance) / 100000000.0) in
+    activeLux ++ " LUX (active) / " ++ pendingLux ++ " LUX (pending) / "
+        ++ activeNox ++ " NOX (active) / " ++ pendingNox ++ " NOX (pending)"
 
 view model =
     Centered.view
@@ -107,15 +131,15 @@ view model =
                   [ div [ Attr.css listLeftStyle ]
                         [ text "COINS" ]
                   , div [ Attr.css listRightStyle ]
-                      [ text (String.fromInt model.arxBalance ++ " ARX / 0 XUSD / 0 ARX:XUSD") ]
+                      [ text (printArxCoins model.arxBalance ++ " ARX / 0 XUSD / 0 ARX:XUSD") ]
                   ]
             , div [ Attr.css listStyle ]
                 [ div [ Attr.css listLeftStyle ]
                       [ text "SEIGNORAGE" ]
                 , div [ Attr.css listRightStyle ]
-                    [ text "0 LUX / 0 NOX" ]
+                    [ text (printSeignorage model) ]
                 ]
-            , Elements.btn [ onClick (SendJsCommand (Js.Faucet model.address 1000000)) ]
+            , Elements.btn [ onClick (SendJsCommand (Js.Faucet model.address 10000000)) ]
                 [ text "FAUCET ARX" ]
             ]
         ]

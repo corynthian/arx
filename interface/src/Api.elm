@@ -21,21 +21,16 @@ getAccountArxCoinResource matchResult address =
 getAccountXUSDCoinResource matchResult address =
     send localNetworkUrl matchResult 
         (Accounts.getAccountResource address "0x1::coin::CoinStore<0x1::xusd_coin::XUSDCoin>" Nothing Data.coinStoreDecoder)
-
-
-getAccountLuxCoinResource matchResult address =
-    send localNetworkUrl matchResult 
-        (Accounts.getAccountResource address "0x1::coin::CoinStore<0x1::lux_coin::LuxCoin>" Nothing Data.coinStoreDecoder)
     
 
-getAccountNoxCoinResource matchResult address =
-    send localNetworkUrl matchResult 
-        (Accounts.getAccountResource address "0x1::coin::CoinStore<0x1::nox_coin::NoxCoin>" Nothing Data.coinStoreDecoder)
+getArxSolaris matchResult address =
+   send localNetworkUrl matchResult
+       (Accounts.getAccountResource address "0x1::solaris::Solaris<0x1::arx_coin::ArxCoin>" Nothing Data.solarisDecoder)
     
 
 getSubsidialis matchResult =
-    send localNetworkUrl matchResult
-        (Accounts.getAccountResource "0x1" "0x1::subsidialis::Subsidialis" Nothing Data.subsidialisDecoder)
+   send localNetworkUrl matchResult
+       (Accounts.getAccountResource "0x1" "0x1::subsidialis::Subsidialis" Nothing Data.subsidialisDecoder)
 
 
 -- getSenatus matchResult =

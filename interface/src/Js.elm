@@ -24,13 +24,16 @@ type alias Model =
 
 
 type Command =
-    -- Asks JS to retrieve an account from local storage
+  -- Asks JS to retrieve an account from local storage
     FetchAccount
-    -- Asks JS to generate a new random account
+  -- Asks JS to generate a new random account
   | GenerateAccount
-    -- Asks JS to mint new coins on local / testnet to designated account
+  -- Asks JS to mint new coins on local / testnet to designated account
   | Faucet String Int
-    -- Asks JS to request to add coins to a subsidialis
+  | GetSolaris Js.Data.ArxAccountObject
+  -- Asks JS to request to join an account to the subsidialis
+  | SubsidialisJoin Js.Data.ArxAccountObject
+  -- Asks JS to request to add coins to a subsidialis
   | SubsidialisAddCoins Js.Data.ArxAccountObject Int
 
 
@@ -57,6 +60,16 @@ encodeCommand cmd =
                 [ ("commandType", Json.Encode.string "faucetArxCoin")
                 , ("address", Json.Encode.string address)
                 , ("amount", Json.Encode.int amount)
+                ]
+        GetSolaris arxAccount ->
+            Json.Encode.object
+                [ ("commandType", Json.Encode.string "getSolaris")
+                , ("account", Js.Data.encodeArxAccountObject arxAccount)
+                ]
+        SubsidialisJoin arxAccount ->
+            Json.Encode.object
+                [ ("commandType", Json.Encode.string "subsidialisJoin")
+                , ("account", Js.Data.encodeArxAccountObject arxAccount)
                 ]
         SubsidialisAddCoins arxAccount amount ->
             Json.Encode.object

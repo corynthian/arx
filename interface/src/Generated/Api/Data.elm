@@ -77,6 +77,46 @@ coinStoreDecoder =
         |> decode "withdraw_events" eventObjectDecoder
 
 
+-- Solaris
+
+
+type alias Coin =
+    { value : String }
+
+
+coinDecoder : Json.Decode.Decoder Coin
+coinDecoder =
+    Json.Decode.succeed Coin
+        |> decode "value" Json.Decode.string
+
+
+type alias Solaris =
+    { ownerAddress : String
+    , activeLux : Coin
+    , pendingActiveLux : Coin
+    , activeNox : Coin
+    , pendingActiveNox : Coin
+    , lockedCoins : Coin
+    , pendingUnlockedCoins : Coin
+    , unlockedCoins : Coin
+    , timeRemaining : String
+    }
+
+
+solarisDecoder : Json.Decode.Decoder Solaris
+solarisDecoder =
+    Json.Decode.succeed Solaris
+        |> decode "owner_address" Json.Decode.string
+        |> decode "active_lux" coinDecoder
+        |> decode "pending_active_lux" coinDecoder
+        |> decode "active_nox" coinDecoder
+        |> decode "pending_active_nox" coinDecoder
+        |> decode "locked_forma" coinDecoder
+        |> decode "pending_unlocked_forma" coinDecoder
+        |> decode "unlocked_forma" coinDecoder
+        |> decode "time_remaining" Json.Decode.string
+
+
 -- Subsidialis
 
 

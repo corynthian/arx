@@ -103,15 +103,12 @@ type Msg =
 updateCredentials subMsg model =
     let ( credential, cmdMsg ) = Credential.update subMsg model.credential in
     let ( account, accountMsg ) = Account.updateCredential credential model.account in
-    let ( addCoins, addCoinsMsg )
-            = Subsidialis.AddCoins.updateArxAccount credential.arxAccountObject model.subsidialis.addCoins
-    in
-    let subsidialis = model.subsidialis in
-    ( { model | credential = credential, account = account, subsidialis = { subsidialis | addCoins = addCoins } }
+    let ( subsidialis, subsidialisMsg ) = Subsidialis.updateCredential credential model.subsidialis in
+    ( { model | credential = credential, account = account, subsidialis = subsidialis }
     , Cmd.batch
           [ Cmd.map CredentialMsg cmdMsg
           , Cmd.map AccountMsg accountMsg
-          , Cmd.map SubsidialisMsg (Cmd.map Subsidialis.AddCoinsMsg addCoinsMsg)
+          , Cmd.map SubsidialisMsg subsidialisMsg
           ]
     )
 
@@ -161,7 +158,7 @@ loadView model =
         "/account" ->
             map AccountMsg (Account.view model.account)
         "/subsidialis" ->
-            Subsidialis.view model.subsidialis.data
+            map SubsidialisMsg (Subsidialis.view model.subsidialis.data)
         "/subsidialis/add_coins" ->
             map SubsidialisMsg
                 (map Subsidialis.AddCoinsMsg (Subsidialis.AddCoins.view model.subsidialis.addCoins))

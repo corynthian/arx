@@ -4,9 +4,12 @@ module Subsidialis exposing (..)
 import Api
 import Css
 import Css.Global
+import Js
+import Js.Data
 import Generated.Api.Data as Data
 import Html.Styled exposing (..)
 import Html.Styled.Attributes as A
+import Html.Styled.Events exposing (onClick)
 import Styles.Elements as Elements
 import Styles.Fonts as Fonts
 import Styles.Theme as Theme
@@ -16,7 +19,8 @@ import Subsidialis.AddCoins
 -- MODEL
 
 type alias Model =
-    { data : Data.Subsidialis
+    { arxAccountObject : Maybe Js.Data.ArxAccountObject
+    , data : Data.Subsidialis
     , addCoins : Subsidialis.AddCoins.Model
     }
 
@@ -41,7 +45,8 @@ defaultData =
 
 
 default =
-    { data = defaultData
+    { arxAccountObject = Nothing
+    , data = defaultData
     , addCoins = Subsidialis.AddCoins.default
     }
 
@@ -52,6 +57,7 @@ default =
 type Msg =
     GetSubsidialis
   | Subsidialis ( Data.MoveResource Data.Subsidialis )
+  | JoinSubsidialis
   | AddCoinsMsg Subsidialis.AddCoins.Msg
   | Error String
 
@@ -71,11 +77,32 @@ update msg model =
             ( model, Api.getSubsidialis matchResult )
         Subsidialis subsidialis ->
             ( { model | data = subsidialis.data }, Cmd.none )
+        JoinSubsidialis ->
+            case model.arxAccountObject of
+                Just arxAccountObject ->
+                    let cmd = Js.SubsidialisJoin arxAccountObject in
+                    ( model, Js.sendCommand (Js.encodeCommand cmd) )
+                Nothing ->
+                    let _ = Debug.log "subsidialis" "arxAccountObject was undefined" in
+                    ( model, Cmd.none )
         AddCoinsMsg subMsg ->
             let ( subModel, cmdMsg ) = Subsidialis.AddCoins.update subMsg model.addCoins in
             ( { model | addCoins = subModel }, Cmd.map AddCoinsMsg cmdMsg )
         Error err ->
             ( model, Cmd.none )
+
+
+updateCredential credential model =
+    case credential.arxAccountObject of
+        Nothing ->
+            ( model, Cmd.none )
+        Just arxAccountObject ->
+            let ( addCoins, addCoinsMsg ) =
+                    Subsidialis.AddCoins.updateArxAccountObject arxAccountObject model.addCoins
+            in
+            ( { model | arxAccountObject = Just arxAccountObject, addCoins = addCoins }
+            , Cmd.map AddCoinsMsg addCoinsMsg
+            )
 
 
 -- VIEW
@@ -104,7 +131,9 @@ view model =
               ]
           ]
         , ul [ A.css css ]
-            [ Elements.listElement [ A.class "listElement" ]
+            [ Elements.btn [ onClick JoinSubsidialis ]
+                  [ text "BECOME DOMINUS" ]
+            , Elements.listElement [ A.class "listElement" ]
                   [ a [ A.href "/subsidialis/add_coins" ] [ text "ADD ARX COINS" ] ]
             , Elements.listElement [ A.class "listElement" ]
                 [ a [ A.href "/subsidialis/add_liquidity" ] [ text "ADD ARX:XUSD LIQUIDITY" ] ]

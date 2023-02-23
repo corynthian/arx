@@ -60,14 +60,15 @@ update msg model =
                     let cmd = Js.SubsidialisAddCoins arxAccountObject (parseAmountString model.amount) in
                     ( model, Js.sendCommand (Js.encodeCommand cmd) )
                 Nothing ->
+                    let _ = Debug.log "add_coins" "arxAccountObject was undefined" in
                     ( model, Cmd.none )
         Error err ->
             let _ = Debug.log "add-coins-error" err in
             ( model, Cmd.none )
 
 
-updateArxAccount arxAccountObject model =
-    ( { model | arxAccountObject = arxAccountObject }, Cmd.none )
+updateArxAccountObject arxAccountObject model =
+    ( { model | arxAccountObject = Just arxAccountObject }, Cmd.none )
 
 
 -- VIEW
